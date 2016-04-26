@@ -11,7 +11,13 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Path2D;
 import java.awt.image.BufferStrategy;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.imageio.ImageIO;
 
 import javax.swing.JPanel;
 
@@ -20,7 +26,9 @@ import org.dyn4j.dynamics.BodyFixture;
 import org.dyn4j.dynamics.World;
 import org.dyn4j.geometry.Convex;
 import org.dyn4j.geometry.MassType;
+import org.dyn4j.geometry.Polygon;
 import org.dyn4j.geometry.Rectangle;
+import org.dyn4j.geometry.Transform;
 import org.dyn4j.geometry.Vector2;
 
 public class GamePanel extends JPanel implements MouseListener, MouseMotionListener, KeyEventDispatcher {
@@ -49,7 +57,12 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
         floor.color = Color.GREEN;
         this.world.addBody(floor);
         Rectangle Guy = new Rectangle(Scalar(50), Scalar(100));
-        GameObject GuyOb = new GameObject();
+        GameObject GuyOb = null;
+        try {
+            GuyOb = new GameObject(ImageIO.read(this.getClass().getResourceAsStream("mario.jpg")));
+        } catch (IOException ex) {
+        }
+        GuyOb.color = Color.RED;
         BodyFixture fix = new BodyFixture(Guy);
         GuyOb.addFixture(fix);
         GuyOb.setMass(MassType.NORMAL);
@@ -83,12 +96,13 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
     }
     double force = 0;
     byte whichKey;
+
     @Override
     public boolean dispatchKeyEvent(KeyEvent e) {
-        if(e.getID()==KeyEvent.KEY_RELEASED){
-        whichKey=0;
-        }else{
-            whichKey=1;
+        if (e.getID() == KeyEvent.KEY_RELEASED) {
+            whichKey = 0;
+        } else {
+            whichKey = 1;
         }
         return false;
     }
@@ -108,6 +122,8 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
     public static class GameObject extends Body {
 
         protected Color color;
+        boolean isImage;
+        BufferedImage im = null;
 
         public static Color colorGen() {
             return new Color(
@@ -117,8 +133,42 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 
         }
 
+        public GameObject(BufferedImage g) {
+            im = g;
+        }
+
         public GameObject() {
             this.color = colorGen();
+            isImage = false;
+        }
+
+        public final void render(Graphics2D g, Polygon polygon, double scale, Color color, BufferedImage im) {
+               Vector2[] vertices = polygon.getVertices();
+                int l = vertices.length;
+
+                // create the awt polygon
+                Path2D.Double p = new Path2D.Double();
+                p.moveTo(vertices[0].x * scale, vertices[0].y * scale);
+                for (int i = 1; i < l; i++) {
+                    p.lineTo(vertices[i].x * scale, vertices[i].y * scale);
+                }
+                p.closePath();
+
+                // fill the shape
+                g.setColor(color);
+                g.fill(p);
+                // draw the outline
+                g.setColor(getOutlineColor(color));
+                g.draw(p);
+
+            if (im != null) {
+                g.drawImage(im, null,this.getFixture(0));
+            }
+        }
+
+        private static final Color getOutlineColor(Color color) {
+            Color oc = color.darker();
+            return new Color(oc.getRed(), oc.getGreen(), oc.getBlue(), color.getAlpha());
         }
 
         public void render(Graphics2D g) {
@@ -129,7 +179,7 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
             g.transform(lt);
             for (BodyFixture fixture : this.fixtures) {
                 Convex convex = fixture.getShape();
-                Graphics2DRenderer.render(g, convex, SCALE, color);
+                render(g, (Polygon) convex, SCALE, color, im);
                 g.rotate(0 - transform.getRotation());
                 g.setColor(Color.BLACK);
                 g.setTransform(ot);
@@ -183,15 +233,16 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
     }
 
     protected void gameLoop() {
+        MoveGuy.setAsleep(false);
         Graphics2D g = (Graphics2D) this.canvas.getBufferStrategy().getDrawGraphics();
         this.render(g);
         g.dispose();
         BufferStrategy strategy = this.canvas.getBufferStrategy();
         MoveGuy.setLinearVelocity(new Vector2(force, MoveGuy.getLinearVelocity().y));
-        if(whichKey==1){
-            force+=1.0;
+        if (whichKey == 1) {
+            force += 1.0;
         }
-        force*=0.9;
+        force *= 0.9;
         if (!strategy.contentsLost()) {
             strategy.show();
         }
