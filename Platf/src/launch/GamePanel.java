@@ -14,14 +14,10 @@ import java.awt.event.MouseMotionListener;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Path2D;
 import java.awt.image.BufferStrategy;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 
 import javax.swing.JPanel;
-import org.dyn4j.collision.Fixture;
 import org.dyn4j.collision.manifold.Manifold;
 import org.dyn4j.collision.narrowphase.Penetration;
 
@@ -34,7 +30,6 @@ import org.dyn4j.geometry.Convex;
 import org.dyn4j.geometry.MassType;
 import org.dyn4j.geometry.Polygon;
 import org.dyn4j.geometry.Rectangle;
-import org.dyn4j.geometry.Transform;
 import org.dyn4j.geometry.Vector2;
 
 public class GamePanel extends JPanel implements MouseListener, MouseMotionListener, KeyEventDispatcher, CollisionListener {
@@ -67,10 +62,10 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
         floor.translate(Scalar(ScreenX / 2.0), Scalar(ScreenY + 40.0));
         floor.color = Color.GREEN;
         this.world.addBody(floor);
-        Rectangle Guy = new Rectangle(Scalar(50), Scalar(100));
+        Rectangle Guy = new Rectangle(Scalar(50), Scalar(50));
         GameObject GuyOb = null;
         try {
-            GuyOb = new GameObject(ImageIO.read(this.getClass().getResourceAsStream("mario.jpg")).getScaledInstance(50, 100, 0), 50 / -2, 100 / -2);
+            GuyOb = new GameObject(ImageIO.read(this.getClass().getResourceAsStream("mario.jpg")).getScaledInstance(50, 50, 0), 50 / -2, 100 / -2);
         } catch (IOException ex) {
         }
         GuyOb.color = Color.ORANGE;
@@ -145,7 +140,7 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 
     @Override
     public boolean collision(Body body, BodyFixture bf, Body body1, BodyFixture bf1) {
-        if(body1==MoveGuy)System.out.println("g");
+        if(body1==MoveGuy||body==MoveGuy)isJumping=false;
         return true;
     }
 
@@ -296,11 +291,9 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
         }
         if (SPDown) {
             if (!isJumping) {
-                MoveGuy.applyForce(new Vector2(0, -1500.0));
+                MoveGuy.applyForce(new Vector2(0, -800.0));
             }
             isJumping = true;
-        } else {
-            isJumping = false;
         }
         XForce *= 0.9;
         if (!strategy.contentsLost()) {
