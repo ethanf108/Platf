@@ -3,6 +3,7 @@ package launch;
 import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.KeyEventDispatcher;
 import java.awt.KeyboardFocusManager;
 import java.awt.Toolkit;
@@ -20,10 +21,15 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 
 import javax.swing.JPanel;
+import org.dyn4j.collision.Fixture;
+import org.dyn4j.collision.manifold.Manifold;
+import org.dyn4j.collision.narrowphase.Penetration;
 
 import org.dyn4j.dynamics.Body;
 import org.dyn4j.dynamics.BodyFixture;
+import org.dyn4j.dynamics.CollisionListener;
 import org.dyn4j.dynamics.World;
+import org.dyn4j.dynamics.contact.ContactConstraint;
 import org.dyn4j.geometry.Convex;
 import org.dyn4j.geometry.MassType;
 import org.dyn4j.geometry.Polygon;
@@ -31,7 +37,7 @@ import org.dyn4j.geometry.Rectangle;
 import org.dyn4j.geometry.Transform;
 import org.dyn4j.geometry.Vector2;
 
-public class GamePanel extends JPanel implements MouseListener, MouseMotionListener, KeyEventDispatcher {
+public class GamePanel extends JPanel implements MouseListener, MouseMotionListener, KeyEventDispatcher, CollisionListener {
 
     public final byte TimeSlow = 1;
     public static double SCALE = 45;
@@ -43,6 +49,11 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
     private final int ScreenY;
     private final int ScreenX;
     Body MoveGuy = null;
+    double XForce = 0;
+    double YForce = 0.0;
+    boolean DDown = false, ADown = false, SPDown = false, SDown = false;
+    boolean isJumping = false;
+    public CollisionListener ColLis = null;
 
     public double Scalar(double s) {
         return s / SCALE;
@@ -59,10 +70,10 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
         Rectangle Guy = new Rectangle(Scalar(50), Scalar(100));
         GameObject GuyOb = null;
         try {
-            GuyOb = new GameObject(ImageIO.read(this.getClass().getResourceAsStream("mario.jpg")));
+            GuyOb = new GameObject(ImageIO.read(this.getClass().getResourceAsStream("mario.jpg")).getScaledInstance(50, 100, 0), 50 / -2, 100 / -2);
         } catch (IOException ex) {
         }
-        GuyOb.color = Color.RED;
+        GuyOb.color = Color.ORANGE;
         BodyFixture fix = new BodyFixture(Guy);
         GuyOb.addFixture(fix);
         GuyOb.setMass(MassType.NORMAL);
@@ -94,17 +105,30 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
     @Override
     public void mouseExited(MouseEvent e) {
     }
-    double force = 0;
-    byte whichKey;
+
+    void setKey(int kc, boolean On) {
+        switch (kc) {
+            case KeyEvent.VK_D:
+                DDown = On;
+                break;
+            case KeyEvent.VK_A:
+                ADown = On;
+                break;
+            case KeyEvent.VK_SPACE:
+                SPDown = On;
+                break;
+        }
+    }
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent e) {
         if (e.getID() == KeyEvent.KEY_RELEASED) {
-            whichKey = 0;
+            setKey(e.getKeyCode(), false);
+            return false;
         } else {
-            whichKey = 1;
+            setKey(e.getKeyCode(), true);
+            return false;
         }
-        return false;
     }
 
     @Override
@@ -119,11 +143,33 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
         Y = e.getY();
     }
 
+    @Override
+    public boolean collision(Body body, BodyFixture bf, Body body1, BodyFixture bf1) {
+        if(body1==MoveGuy)System.out.println("g");
+        return true;
+    }
+
+    @Override
+    public boolean collision(Body body, BodyFixture bf, Body body1, BodyFixture bf1, Penetration pntrtn) {
+        return true;
+    }
+
+    @Override
+    public boolean collision(Body body, BodyFixture bf, Body body1, BodyFixture bf1, Manifold mnfld) {
+        return true;
+    }
+
+    @Override
+    public boolean collision(ContactConstraint cc) {
+        return true;
+    }
+
     public static class GameObject extends Body {
 
         protected Color color;
         boolean isImage;
-        BufferedImage im = null;
+        Image im = null;
+        int xs = 0, ys = 0;
 
         public static Color colorGen() {
             return new Color(
@@ -133,8 +179,10 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 
         }
 
-        public GameObject(BufferedImage g) {
+        public GameObject(Image g, int xs, int ys) {
             im = g;
+            this.xs = xs;
+            this.ys = ys;
         }
 
         public GameObject() {
@@ -142,27 +190,28 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
             isImage = false;
         }
 
-        public final void render(Graphics2D g, Polygon polygon, double scale, Color color, BufferedImage im) {
-               Vector2[] vertices = polygon.getVertices();
-                int l = vertices.length;
+        public final void render(Graphics2D g, Polygon polygon, double scale, Color color, Image im) {
 
-                // create the awt polygon
-                Path2D.Double p = new Path2D.Double();
-                p.moveTo(vertices[0].x * scale, vertices[0].y * scale);
-                for (int i = 1; i < l; i++) {
-                    p.lineTo(vertices[i].x * scale, vertices[i].y * scale);
-                }
-                p.closePath();
+            Vector2[] vertices = polygon.getVertices();
+            int l = vertices.length;
 
-                // fill the shape
-                g.setColor(color);
-                g.fill(p);
-                // draw the outline
-                g.setColor(getOutlineColor(color));
-                g.draw(p);
+            // create the awt polygon
+            Path2D.Double p = new Path2D.Double();
+            p.moveTo(vertices[0].x * scale, vertices[0].y * scale);
+            for (int i = 1; i < l; i++) {
+                p.lineTo(vertices[i].x * scale, vertices[i].y * scale);
+            }
+            p.closePath();
 
-            if (im != null) {
-                g.drawImage(im, null,this.getFixture(0));
+            // fill the shape
+            g.setColor(color);
+            g.fill(p);
+            // draw the outline
+            g.setColor(getOutlineColor(color));
+            g.draw(p);
+
+            if (false && im != null) {
+                g.drawImage(im, xs, ys, null);
             }
         }
 
@@ -212,6 +261,7 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
         this.world = new World();
         this.canvas.addMouseListener(this);
         this.canvas.addMouseMotionListener(this);
+        this.world.addListener(this);
         CreateObs();
     }
 
@@ -238,11 +288,21 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
         this.render(g);
         g.dispose();
         BufferStrategy strategy = this.canvas.getBufferStrategy();
-        MoveGuy.setLinearVelocity(new Vector2(force, MoveGuy.getLinearVelocity().y));
-        if (whichKey == 1) {
-            force += 1.0;
+        MoveGuy.setLinearVelocity(new Vector2(XForce, MoveGuy.getLinearVelocity().y));
+        if (DDown) {
+            XForce += 1.0;
+        } else if (ADown) {
+            XForce -= 1.0;
         }
-        force *= 0.9;
+        if (SPDown) {
+            if (!isJumping) {
+                MoveGuy.applyForce(new Vector2(0, -1500.0));
+            }
+            isJumping = true;
+        } else {
+            isJumping = false;
+        }
+        XForce *= 0.9;
         if (!strategy.contentsLost()) {
             strategy.show();
         }
