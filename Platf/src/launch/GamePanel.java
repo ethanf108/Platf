@@ -32,7 +32,7 @@ import org.dyn4j.geometry.Polygon;
 import org.dyn4j.geometry.Rectangle;
 import org.dyn4j.geometry.Vector2;
 
-public class GamePanel extends JPanel implements MouseListener, MouseMotionListener, KeyEventDispatcher, CollisionListener {
+public class GamePanel extends JPanel implements MouseListener, MouseMotionListener, CollisionListener {
 
     public final byte TimeSlow = 1;
     public static double SCALE = 45;
@@ -43,14 +43,14 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
     public static final double NANO_TO_BASE = 1.0e9;
     private final int ScreenY;
     private final int ScreenX;
-    Body MoveGuy = null;
+    GameCharacter MoveGuy = null;
     double XForce = 0;
     double YForce = 0.0;
     boolean DDown = false, ADown = false, SPDown = false, SDown = false;
     boolean isJumping = false;
     public CollisionListener ColLis = null;
 
-    public double Scalar(double s) {
+    public static double Scalar(double s) {
         return s / SCALE;
     }
 
@@ -61,20 +61,14 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
         floor.setMass(MassType.INFINITE);
         floor.translate(Scalar(ScreenX / 2.0), Scalar(ScreenY + 40.0));
         floor.color = Color.GREEN;
+        floor.setUserData("s");
         this.world.addBody(floor);
-        Rectangle Guy = new Rectangle(Scalar(50), Scalar(50));
-        GameObject GuyOb = null;
         try {
-            GuyOb = new GameObject(ImageIO.read(this.getClass().getResourceAsStream("mario.jpg")).getScaledInstance(50, 50, 0), 50 / -2, 100 / -2);
+            MoveGuy = new GameCharacter(ImageIO.read(this.getClass().getResourceAsStream("mario.jpg")).getScaledInstance(50, 50, 0),
+                    50, 100,KeyEvent.VK_SPACE,KeyEvent.VK_A,KeyEvent.VK_D,world);
         } catch (IOException ex) {
         }
-        GuyOb.color = Color.ORANGE;
-        BodyFixture fix = new BodyFixture(Guy);
-        GuyOb.addFixture(fix);
-        GuyOb.setMass(MassType.NORMAL);
-        GuyOb.translate(Scalar(100), Scalar(100));
-        MoveGuy = GuyOb;
-        this.world.addBody(GuyOb);
+        this.world.addBody(MoveGuy);
     }
 
     @Override
@@ -116,17 +110,6 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
     }
 
     @Override
-    public boolean dispatchKeyEvent(KeyEvent e) {
-        if (e.getID() == KeyEvent.KEY_RELEASED) {
-            setKey(e.getKeyCode(), false);
-            return false;
-        } else {
-            setKey(e.getKeyCode(), true);
-            return false;
-        }
-    }
-
-    @Override
     public void mouseDragged(MouseEvent e) {
         X = e.getX();
         Y = e.getY();
@@ -140,7 +123,7 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
 
     @Override
     public boolean collision(Body body, BodyFixture bf, Body body1, BodyFixture bf1) {
-        if(body1==MoveGuy||body==MoveGuy)isJumping=false;
+        
         return true;
     }
 
@@ -239,8 +222,6 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
         super();
         ScreenX = Toolkit.getDefaultToolkit().getScreenSize().width;
         ScreenY = Toolkit.getDefaultToolkit().getScreenSize().height;
-        KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
-        manager.addKeyEventDispatcher(this);
         this.canvas = new Canvas();
         this.canvas.setPreferredSize(Toolkit.getDefaultToolkit().getScreenSize());
 
@@ -283,7 +264,7 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
         this.render(g);
         g.dispose();
         BufferStrategy strategy = this.canvas.getBufferStrategy();
-        MoveGuy.setLinearVelocity(new Vector2(XForce, MoveGuy.getLinearVelocity().y));
+        //MoveGuy.setLinearVelocity(new Vector2(XForce, MoveGuy.getLinearVelocity().y));
         if (DDown) {
             XForce += 1.0;
         } else if (ADown) {
@@ -291,7 +272,6 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
         }
         if (SPDown) {
             if (!isJumping) {
-                MoveGuy.applyForce(new Vector2(0, -800.0));
             }
             isJumping = true;
         }
