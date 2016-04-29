@@ -5,8 +5,6 @@ import java.awt.Image;
 import java.awt.KeyEventDispatcher;
 import java.awt.KeyboardFocusManager;
 import java.awt.event.KeyEvent;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.dyn4j.collision.manifold.Manifold;
 import org.dyn4j.collision.narrowphase.Penetration;
 import org.dyn4j.dynamics.Body;
@@ -22,8 +20,9 @@ public class GameCharacter extends GamePanel.GameObject implements CollisionList
 
     boolean canJump = false;
     int jump, left, right;
-    boolean sL = false, sR = false,isSP=false;
+    boolean sL = false, sR = false, isSP = false;
     double velX = 0;
+    boolean colliding = false;
 
     public GameCharacter(Image g, int x, int y, int jumpKey, int LeftKey, int RightKey, World w) {
         super(g, x / -2, y / -2);
@@ -50,6 +49,8 @@ public class GameCharacter extends GamePanel.GameObject implements CollisionList
                     velX -= 1.0;
                 }
                 velX *= 0.9;
+                transform.setRotation(0.0);
+                setAngularVelocity(0.0);
                 try {
                     Thread.sleep(5);
                 } catch (InterruptedException ex) {
@@ -64,13 +65,20 @@ public class GameCharacter extends GamePanel.GameObject implements CollisionList
 
     public void jump() {
         applyForce(new Vector2(0, -800.0));
+        if(sR&&colliding){
+            velX=-40;
+        }
     }
 
     @Override
     public boolean collision(Body body, BodyFixture bf, Body body1, BodyFixture bf1) {
         if (body1 == this || body == this) {
-            if (((String) body.getUserData()).matches("[s]") || ((String) body1.getUserData()).matches("[s]")) {
+            if (((String) body.getUserData()).contains("s") || ((String) body1.getUserData()).contains("s")) {
                 canJump = true;
+                colliding = false;
+            }
+            if (((String) body.getUserData()).contains("w") || ((String) body1.getUserData()).contains("w")) {
+                colliding=true;
             }
         }
         return true;
@@ -95,22 +103,25 @@ public class GameCharacter extends GamePanel.GameObject implements CollisionList
     public boolean dispatchKeyEvent(KeyEvent e) {
         if (e.getID() == KeyEvent.KEY_RELEASED) {
             if (e.getKeyCode() == jump) {
-                isSP=false;
-            } else if (e.getKeyCode() == left) {
+                isSP = false;
+            }
+            if (e.getKeyCode() == left) {
                 sL = false;
-            } else if (e.getKeyCode() == right) {
+            }
+            if (e.getKeyCode() == right) {
                 sR = false;
             }
-        } else {
+        } else if (e.getID() == KeyEvent.KEY_PRESSED) {
             if (e.getKeyCode() == jump) {
-                if (canJump&&!isSP) {
-                    isSP=true;
+                if (!isSP && canJump) {
+                    isSP = true;
                     jump();
                     try {
                         Thread.sleep(50);
                     } catch (InterruptedException ex) {
+                        ex.printStackTrace();
                     }
-                    canJump=false;
+                    canJump = false;
                 }
             }
             if (e.getKeyCode() == left) {

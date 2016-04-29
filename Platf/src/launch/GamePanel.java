@@ -6,6 +6,7 @@ import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.KeyEventDispatcher;
 import java.awt.KeyboardFocusManager;
+import java.awt.RenderingHints;
 import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
@@ -32,7 +33,7 @@ import org.dyn4j.geometry.Polygon;
 import org.dyn4j.geometry.Rectangle;
 import org.dyn4j.geometry.Vector2;
 
-public class GamePanel extends JPanel implements MouseListener, MouseMotionListener, CollisionListener {
+public class GamePanel extends JPanel implements MouseListener, MouseMotionListener {
 
     public final byte TimeSlow = 1;
     public static double SCALE = 45;
@@ -63,9 +64,17 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
         floor.color = Color.GREEN;
         floor.setUserData("s");
         this.world.addBody(floor);
+        Rectangle t = new Rectangle(Scalar(100.0), Scalar(ScreenY));
+        GameObject h = new GameObject();
+        h.addFixture(new BodyFixture(t));
+        h.setMass(MassType.INFINITE);
+        h.translate(Scalar(ScreenX - 160.0), Scalar(ScreenY - 280.0));
+        h.color = Color.BLACK;
+        h.setUserData("sw");
+        this.world.addBody(h);
         try {
             MoveGuy = new GameCharacter(ImageIO.read(this.getClass().getResourceAsStream("mario.jpg")).getScaledInstance(50, 50, 0),
-                    50, 100,KeyEvent.VK_SPACE,KeyEvent.VK_A,KeyEvent.VK_D,world);
+                    50, 50, KeyEvent.VK_SPACE, KeyEvent.VK_A, KeyEvent.VK_D, world);
         } catch (IOException ex) {
         }
         this.world.addBody(MoveGuy);
@@ -95,20 +104,6 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
     public void mouseExited(MouseEvent e) {
     }
 
-    void setKey(int kc, boolean On) {
-        switch (kc) {
-            case KeyEvent.VK_D:
-                DDown = On;
-                break;
-            case KeyEvent.VK_A:
-                ADown = On;
-                break;
-            case KeyEvent.VK_SPACE:
-                SPDown = On;
-                break;
-        }
-    }
-
     @Override
     public void mouseDragged(MouseEvent e) {
         X = e.getX();
@@ -119,27 +114,6 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
     public void mouseMoved(MouseEvent e) {
         X = e.getX();
         Y = e.getY();
-    }
-
-    @Override
-    public boolean collision(Body body, BodyFixture bf, Body body1, BodyFixture bf1) {
-        
-        return true;
-    }
-
-    @Override
-    public boolean collision(Body body, BodyFixture bf, Body body1, BodyFixture bf1, Penetration pntrtn) {
-        return true;
-    }
-
-    @Override
-    public boolean collision(Body body, BodyFixture bf, Body body1, BodyFixture bf1, Manifold mnfld) {
-        return true;
-    }
-
-    @Override
-    public boolean collision(ContactConstraint cc) {
-        return true;
     }
 
     public static class GameObject extends Body {
@@ -237,7 +211,6 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
         this.world = new World();
         this.canvas.addMouseListener(this);
         this.canvas.addMouseMotionListener(this);
-        this.world.addListener(this);
         CreateObs();
     }
 
@@ -261,21 +234,13 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
     protected void gameLoop() {
         MoveGuy.setAsleep(false);
         Graphics2D g = (Graphics2D) this.canvas.getBufferStrategy().getDrawGraphics();
+        RenderingHints rh = new RenderingHints(
+                RenderingHints.KEY_TEXT_ANTIALIASING,
+                RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g.setRenderingHints(rh);
         this.render(g);
         g.dispose();
         BufferStrategy strategy = this.canvas.getBufferStrategy();
-        //MoveGuy.setLinearVelocity(new Vector2(XForce, MoveGuy.getLinearVelocity().y));
-        if (DDown) {
-            XForce += 1.0;
-        } else if (ADown) {
-            XForce -= 1.0;
-        }
-        if (SPDown) {
-            if (!isJumping) {
-            }
-            isJumping = true;
-        }
-        XForce *= 0.9;
         if (!strategy.contentsLost()) {
             strategy.show();
         }
