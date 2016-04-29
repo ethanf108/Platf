@@ -23,6 +23,9 @@ public class GameCharacter extends GamePanel.GameObject implements CollisionList
     boolean sL = false, sR = false, isSP = false;
     double velX = 0;
     boolean colliding = false;
+    private boolean ObLeft;
+    boolean wallJump = false;
+    private Body lastBod;
 
     public GameCharacter(Image g, int x, int y, int jumpKey, int LeftKey, int RightKey, World w) {
         super(g, x / -2, y / -2);
@@ -41,18 +44,25 @@ public class GameCharacter extends GamePanel.GameObject implements CollisionList
         w.addListener(this);
         Thread charUpdateThread = new Thread(() -> {
             while (true) {
+                if (lastBod != null) {
+                    colliding = this.isInContact(lastBod);
+                }
                 setLinearVelocity(new Vector2(velX, getLinearVelocity().y));
                 if (sR) {
-                    velX += 1.0;
+                    velX += 2.0;
+                } else if (sL) {
+                    velX -= 2.0;
                 }
-                if (sL) {
-                    velX -= 1.0;
+                if (colliding) {
+                    if (ObLeft ? (velX > 1.0) : (velX < -1.0)) {
+                        velX = 0;
+                    }
                 }
                 velX *= 0.9;
                 transform.setRotation(0.0);
                 setAngularVelocity(0.0);
                 try {
-                    Thread.sleep(5);
+                    Thread.sleep(50);
                 } catch (InterruptedException ex) {
 
                 }
@@ -64,9 +74,20 @@ public class GameCharacter extends GamePanel.GameObject implements CollisionList
     }
 
     public void jump() {
-        applyForce(new Vector2(0, -800.0));
-        if(sR&&colliding){
-            velX=-40;
+        if (wallJump) {
+            if (sR && colliding) {
+                velX = -20;
+                setLinearVelocity(new Vector2(getLinearVelocity().x, -12.0));
+
+            }
+            if (sL && colliding) {
+                velX = 20;
+                setLinearVelocity(new Vector2(getLinearVelocity().x, -12.0));
+
+            }
+        } else {
+            setLinearVelocity(new Vector2(getLinearVelocity().x, -12.0));
+
         }
     }
 
@@ -75,10 +96,19 @@ public class GameCharacter extends GamePanel.GameObject implements CollisionList
         if (body1 == this || body == this) {
             if (((String) body.getUserData()).contains("s") || ((String) body1.getUserData()).contains("s")) {
                 canJump = true;
-                colliding = false;
             }
             if (((String) body.getUserData()).contains("w") || ((String) body1.getUserData()).contains("w")) {
-                colliding=true;
+                if (this == body) {
+                    ObLeft = ((GamePanel.GameObject) body).getTransform().getTranslationX()
+                            < ((GamePanel.GameObject) body1).getTransform().getTranslationX();
+                    lastBod = body1;
+                }
+                if (this == body1) {
+                    ObLeft = ((GamePanel.GameObject) body).getTransform().getTranslationX()
+                            > ((GamePanel.GameObject) body1).getTransform().getTranslationX();
+                    lastBod = body;
+                }
+                wallJump = true;
             }
         }
         return true;
@@ -114,10 +144,10 @@ public class GameCharacter extends GamePanel.GameObject implements CollisionList
         } else if (e.getID() == KeyEvent.KEY_PRESSED) {
             if (e.getKeyCode() == jump) {
                 if (!isSP && canJump) {
-                    isSP = true;
+                    //isSP = true;
                     jump();
                     try {
-                        Thread.sleep(50);
+                        Thread.sleep(20);
                     } catch (InterruptedException ex) {
                         ex.printStackTrace();
                     }

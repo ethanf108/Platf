@@ -31,6 +31,7 @@ import org.dyn4j.geometry.Convex;
 import org.dyn4j.geometry.MassType;
 import org.dyn4j.geometry.Polygon;
 import org.dyn4j.geometry.Rectangle;
+import org.dyn4j.geometry.Transform;
 import org.dyn4j.geometry.Vector2;
 
 public class GamePanel extends JPanel implements MouseListener, MouseMotionListener {
@@ -141,7 +142,6 @@ public class GamePanel extends JPanel implements MouseListener, MouseMotionListe
             this.color = colorGen();
             isImage = false;
         }
-
         public final void render(Graphics2D g, Polygon polygon, double scale, Color color, Image im) {
 
             Vector2[] vertices = polygon.getVertices();
