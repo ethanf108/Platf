@@ -40,21 +40,24 @@ public class test extends Canvas implements MouseListener, KeyEventDispatcher {
         return tmp;
     }
     ArrayList<RectWithProps> Rects = new ArrayList<RectWithProps>() {
+        private static final long serialVersionUID = 1L;
         {
             add(new RectWithProps(Guy, "p"));
             add(new RectWithProps(NR(0, ScreenY - 10, ScreenX, 10), ""));//floor
             add(new RectWithProps(NR(ScreenX, 0, 10, ScreenY), ""));//right wall
             add(new RectWithProps(NR(-10, 0, 10, ScreenY), ""));//left wall
             add(new RectWithProps(NR(0, -10, ScreenX, 10), ""));//ceil
-            add(new RectWithProps(NR(1100, ScreenY - 500, 100, 20), "w"));//rand platf
-            add(new RectWithProps(NR(500, ScreenY - 300, 100, 20), "w"));//rand platf
+            add(new RectWithProps(NR(200, ScreenY - 100, 100, 20), "w"));//rand platf
+            add(new RectWithProps(NR(500, ScreenY - 200, 100, 20), "w"));//rand platf
             add(new RectWithProps(NR(800, ScreenY - 300, 100, 20), "w"));//rand platf
-            add(new RectWithProps(NR(1100, ScreenY - 50, 100, 20), "w"));//rand platf
+            add(new RectWithProps(NR(1100, ScreenY - 400, 100, 20), "w"));//rand platf
         }
     };
     Color ct = Color.BLUE;
 
     void collisionCheck() {
+        canJump=false;
+        canWallJump=false;
         for (RectWithProps g : Rects) {
             if (Guy != g.rect) {
                 Rectangle tmprect = ((Rectangle) g.rect.clone());
@@ -77,9 +80,9 @@ public class test extends Canvas implements MouseListener, KeyEventDispatcher {
                 } else {
                     g.isMiddleY = true;
                 }
+                if (Guy.intersects(tmprect)) {
                 WallJumpLeft = g.isLeft;
                 ableWallJump = !g.isMiddleX;
-                if (Guy.intersects(tmprect)) {
                     if (g.isMiddleY) {
                         if (g.isLeft) {
                             if (gmx > 0) {
@@ -99,18 +102,10 @@ public class test extends Canvas implements MouseListener, KeyEventDispatcher {
                     }
                     if (g.isTop && g.isMiddleX) {
                         canJump = true;
-                    } else {
-                        canJump = false;
                     }
                     if (g.Props.contains("w") && g.isMiddleY) {
                         canWallJump = true;
-                    } else {
-                        canWallJump = false;
                     }
-                    ct=Color.GREEN;
-                } else {
-                    canJump = false;ct=Color.WHITE;
-                    canWallJump = false;
                 }
             }
         }
@@ -133,7 +128,11 @@ public class test extends Canvas implements MouseListener, KeyEventDispatcher {
             canJump = false;
             gmy = -220.0;
             if (canWallJump && ableWallJump) {
-                gmx = (WallJumpLeft ? 1 : -1) * -8;
+                if(WallJumpLeft){
+                gmx = -6;
+                }else{
+                gmx = 6;
+                }
             }
         }
         gmx *= 0.98;
