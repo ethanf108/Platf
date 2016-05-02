@@ -1,14 +1,12 @@
 package launch;
 
-import java.awt.FlowLayout;
-import java.awt.GraphicsEnvironment;
-import java.awt.Toolkit;
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 
 public class MainWindow extends JFrame{
 
     public MainWindow() {
+        super("");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setUndecorated(true);
         setExtendedState(getExtendedState() | JFrame.MAXIMIZED_BOTH);

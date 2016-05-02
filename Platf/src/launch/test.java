@@ -13,59 +13,83 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.image.BufferStrategy;
 import java.util.ArrayList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.swing.JPanel;
 
 public class test extends Canvas implements MouseListener, KeyEventDispatcher {
 
     public int ScreenX, ScreenY;
     boolean stop = false;
     double gx = 0, gy = 0, gmx = 0, gmy = 0;
-    int gxs = 50, gys = 100;
+    final int gxs = 40, gys = 80;
     private boolean SpacePressed;
     private boolean RightKeyPressed;
     private boolean canJump = true;
     private boolean LeftKeyPressed;
     private boolean canWallJump;
-    private boolean isLeftOfWall;
+    final int ADD = 2;
+    boolean WallJumpLeft = false, ableWallJump = false;
 
     {
         ScreenX = Toolkit.getDefaultToolkit().getScreenSize().width;
         ScreenY = Toolkit.getDefaultToolkit().getScreenSize().height;
     }
     Rectangle Guy = new Rectangle(0, 0, gxs, gys);
+
+    Rectangle NR(int x, int y, int xs, int ys) {
+        Rectangle tmp = new Rectangle(x, y, xs, ys);
+        tmp.grow(-2, -2);
+        return tmp;
+    }
     ArrayList<RectWithProps> Rects = new ArrayList<RectWithProps>() {
         {
             add(new RectWithProps(Guy, "p"));
-            add(new RectWithProps(new Rectangle(0, ScreenY - 10, ScreenX, 10), "jy"));
-            add(new RectWithProps(new Rectangle(ScreenX, 0, 10, ScreenY), "bw"));
-            add(new RectWithProps(new Rectangle(-10, 0, 10, ScreenY), "bw"));
-            add(new RectWithProps(new Rectangle(0, -10, ScreenX, 10), "by"));
-            add(new RectWithProps(new Rectangle(100,ScreenY-50,100,10),"ywj"));
+            add(new RectWithProps(NR(0, ScreenY - 10, ScreenX, 10), ""));//floor
+            add(new RectWithProps(NR(ScreenX, 0, 10, ScreenY), ""));//right wall
+            add(new RectWithProps(NR(-10, 0, 10, ScreenY), ""));//left wall
+            add(new RectWithProps(NR(0, -10, ScreenX, 10), ""));//ceil
+            add(new RectWithProps(NR(1100, ScreenY - 500, 100, 20), "w"));//rand platf
+            add(new RectWithProps(NR(500, ScreenY - 300, 100, 20), "w"));//rand platf
+            add(new RectWithProps(NR(800, ScreenY - 300, 100, 20), "w"));//rand platf
+            add(new RectWithProps(NR(1100, ScreenY - 50, 100, 20), "w"));//rand platf
         }
     };
+    Color ct = Color.BLUE;
 
     void collisionCheck() {
-        String allProps = "";
         for (RectWithProps g : Rects) {
             if (Guy != g.rect) {
                 Rectangle tmprect = ((Rectangle) g.rect.clone());
-                tmprect.grow(1, 1);
+                tmprect.grow(ADD, ADD);
+                if (g.rect.x + ADD > Guy.x + Guy.width) {
+                    g.isLeft = true;
+                    g.isMiddleX = false;
+                } else if (g.rect.x + g.rect.width < Guy.x + ADD) {
+                    g.isLeft = false;
+                    g.isMiddleX = false;
+                } else {
+                    g.isMiddleX = true;
+                }
+                if (g.rect.y + ADD > Guy.y + Guy.height) {
+                    g.isTop = true;
+                    g.isMiddleY = false;
+                } else if (g.rect.y + g.rect.height < Guy.y + ADD) {
+                    g.isTop = false;
+                    g.isMiddleY = false;
+                } else {
+                    g.isMiddleY = true;
+                }
+                WallJumpLeft = g.isLeft;
+                ableWallJump = !g.isMiddleX;
                 if (Guy.intersects(tmprect)) {
-                    if (g.Props.contains("w")) {
-                        if (g.rect.x> Guy.x) {
+                    if (g.isMiddleY) {
+                        if (g.isLeft) {
                             if (gmx > 0) {
                                 gmx = 0;
-                                isLeftOfWall=true;
                             }
                         } else if (gmx < 0) {
-                            isLeftOfWall=false;
                             gmx = 0;
                         }
-                    }
-                    if (g.Props.contains("y")) {
-                        if (g.rect.y > Guy.y) {
+                    } else if (g.isMiddleX) {
+                        if (g.isTop) {
                             if (gmy > 0) {
                                 gmy = 0;
                             }
@@ -73,27 +97,56 @@ public class test extends Canvas implements MouseListener, KeyEventDispatcher {
                             gmy = 0;
                         }
                     }
-                    allProps += g.Props;
+                    if (g.isTop && g.isMiddleX) {
+                        canJump = true;
+                    } else {
+                        canJump = false;
+                    }
+                    if (g.Props.contains("w") && g.isMiddleY) {
+                        canWallJump = true;
+                    } else {
+                        canWallJump = false;
+                    }
+                    ct=Color.GREEN;
+                } else {
+                    canJump = false;ct=Color.WHITE;
+                    canWallJump = false;
                 }
             }
         }
-        if (allProps.contains("w")) {
-            canWallJump = true;
-        }
-        if (allProps.contains("b")) {
-            canJump = false;
-            canWallJump=false;
-        }
-        if (allProps.contains("y")) {
-            canWallJump=false;
-            canJump = false;
-        }
-        if (allProps.contains("j")) {
+    }
+
+    public void GamePhysThread() {
+        if (gy >= ScreenY - (gys + 10)) {
+            gmy = 0;
             canJump = true;
-            canWallJump = false;
+            gy = ScreenY - (gys + 10);
+        } else {
+            gmy += 2;
         }
-        if(!allProps.contains("w")){
-            canWallJump=false;
+        if (RightKeyPressed) {
+            gmx += 0.07;
+        } else if (LeftKeyPressed) {
+            gmx -= 0.07;
+        }
+        if (SpacePressed && (canJump || canWallJump)) {
+            canJump = false;
+            gmy = -220.0;
+            if (canWallJump && ableWallJump) {
+                gmx = (WallJumpLeft ? 1 : -1) * -8;
+            }
+        }
+        gmx *= 0.98;
+        collisionCheck();
+        gx += gmx;
+        gy += gmy / 70;
+        Guy.x = (int) gx;
+        Guy.y = (int) gy;
+
+        try {
+            Thread.sleep(5);
+        } catch (InterruptedException ex) {
+
         }
     }
 
@@ -104,36 +157,7 @@ public class test extends Canvas implements MouseListener, KeyEventDispatcher {
                 getToolkit().getScreenSize().height);
         Thread t = new Thread(() -> {
             while (true) {
-                if (gy >= ScreenY - (gys + 10)) {
-                    gmy = 0;
-                    gy = ScreenY - (gys + 10);
-                } else {
-                    gmy += 1;
-                }
-                if (RightKeyPressed) {
-                    gmx += 0.1;
-                } else if (LeftKeyPressed) {
-                    gmx -= 0.1;
-                }
-                if (SpacePressed && (canJump||canWallJump)) {
-                    canJump = false;
-                    gmy = -200.0;
-                    if(canWallJump){
-                        gmx=-8;
-                    }
-                }
-                gmx *= 0.98;
-                collisionCheck();
-                gx += gmx;
-                gy += gmy / 70;
-                Guy.x = (int) gx;
-                Guy.y = (int) gy;
-
-                try {
-                    Thread.sleep(5);
-                } catch (InterruptedException ex) {
-
-                }
+                GamePhysThread();
             }
         }
         );
@@ -147,11 +171,11 @@ public class test extends Canvas implements MouseListener, KeyEventDispatcher {
         g.fillRect(0, 0, ScreenX, ScreenY);
         g.setColor(Color.BLUE);
         for (RectWithProps r : Rects) {
-            Rectangle tr = r.rect;
+            Rectangle tr = (Rectangle) r.rect.clone();
+            tr.grow(ADD, ADD);
+            g.setColor(ct);
             g.fillRect(tr.x, tr.y, tr.width, tr.height);
         }
-        g.setColor(Color.GREEN);
-        //g.fillRect((int) gx, (int) gy, gxs, gys);
     }
 
     public void gameLoop() {
