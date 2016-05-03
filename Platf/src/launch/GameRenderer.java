@@ -97,7 +97,22 @@ public strictfp class GameRenderer extends Canvas implements MouseListener, KeyE
                 if (Guy.intersects(tmprect)) {
                     WallJumpLeft = g.isLeft;
                     ableWallJump = !g.isMiddleX;
-                    if (g.isMiddleY) {
+                    if (g.isMiddleX && g.isMiddleY) {
+                        if (g.isTop) {
+                            gmy = 0;
+                            gy -= 1;
+                        } else {
+                            gmy = 0;
+                            gy += 1;
+                        }
+                        if (g.isLeft) {
+                            gmy = 0;
+                            gy -= 1;
+                        } else {
+                            gmy = 0;
+                            gy += 1;
+                        }
+                    } else if (g.isMiddleY) {
                         if (g.isLeft) {
                             if (gmx > 0) {
                                 gmx = 0;
@@ -138,16 +153,17 @@ public strictfp class GameRenderer extends Canvas implements MouseListener, KeyE
         } else if (LeftKeyPressed) {
             gmx -= 0.07;
         }
-        if (SpacePressed && (canJump || (canWallJump&&ableWallJump))) {
-            canJump = false;
-            if (canWallJump && ableWallJump) {
+        if (SpacePressed && (canJump || (canWallJump && ableWallJump))) {
+            if (canWallJump && ableWallJump && !canJump) {
                 if (WallJumpLeft && RightKeyPressed) {
                     gmx = -6;
                     gmy = -220.0;
-                } else if (!WallJumpLeft&&LeftKeyPressed) {
+                } else if (!WallJumpLeft && LeftKeyPressed) {
                     gmx = 6;
                     gmy = -220.0;
                 }
+            } else {
+                gmy = -220.0;
             }
         }
         gmx *= 0.98;
@@ -249,26 +265,26 @@ public strictfp class GameRenderer extends Canvas implements MouseListener, KeyE
     @Override
     public boolean dispatchKeyEvent(KeyEvent e) {
         if (e.getID() == KeyEvent.KEY_RELEASED) {
-            if (e.getKeyChar() == ' ') {
+            if (e.getKeyCode() == KeyEvent.VK_UP) {
                 SpacePressed = false;
             }
-            if (e.getKeyChar() == 'd') {
+            if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
                 RightKeyPressed = false;
             }
-            if (e.getKeyChar() == 'a') {
+            if (e.getKeyCode() == KeyEvent.VK_LEFT) {
                 LeftKeyPressed = false;
             }
             if (e.getKeyChar() == 'u') {
-                Level=(++Level)%2;
+                Level = (++Level) % 2;
             }
         } else {
-            if (e.getKeyChar() == ' ') {
+            if (e.getKeyCode() == KeyEvent.VK_UP) {
                 SpacePressed = true;
             }
-            if (e.getKeyChar() == 'd') {
+            if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
                 RightKeyPressed = true;
             }
-            if (e.getKeyChar() == 'a') {
+            if (e.getKeyCode() == KeyEvent.VK_LEFT) {
                 LeftKeyPressed = true;
             }
         }
