@@ -2,24 +2,43 @@ package launch;
 
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
 
-public class MainWindow extends JFrame{
+public class MainWindow extends JFrame {
 
-    public MainWindow() {
-        super("");
+    GameRenderer GameRenderPanel = null;
+
+    public void handleExceptionPopup(Throwable e) {
+        dispose();
+        Popup errorPopup = new Popup(e);
+    }
+
+    public void init() {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setUndecorated(true);
         setExtendedState(getExtendedState() | JFrame.MAXIMIZED_BOTH);
-        test panel = new test();
-        getContentPane().add(panel);//setContentPane(panel);
-        getContentPane().setLayout(new BoxLayout(getContentPane(),BoxLayout.X_AXIS));
+        GameRenderPanel = new GameRenderer();
+        GameRenderPanel.init();
+        getContentPane().add(GameRenderPanel);
+        getContentPane().setLayout(new BoxLayout(getContentPane(), BoxLayout.X_AXIS));
         setVisible(true);
         pack();
-       panel.start();
+        Thread.UncaughtExceptionHandler h = (Thread th, Throwable e) -> {
+            handleExceptionPopup(e);
+        };
+        Thread.setDefaultUncaughtExceptionHandler(h);
+    }
+
+    public MainWindow() {
+        super("");
+        SwingUtilities.invokeLater(() -> {
+            init();
+            GameRenderPanel.start();
+        });
     }
 
     public static void main(String[] args) {
-        new MainWindow();
+        MainWindow window = new MainWindow();
     }
 
 }
