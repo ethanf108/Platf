@@ -17,178 +17,113 @@ import java.util.ArrayList;
 public class GameRenderer extends Canvas implements MouseListener, KeyEventDispatcher {
 
     private static final long serialVersionUID = 1L;
-    private int Level = 0;
-    private double gx, gy, gmx = 0, gmy = 0;
-    private boolean SpacePressed, RightKeyPressed, canJump = true,
-            LeftKeyPressed, canWallJump, WallJumpLeft = false,
-            ableWallJump = false, stopped = false;
-    private final int RectScale = 2, gxs = 40, gys = 80, ScreenX, ScreenY;
-    private Thread GamePhysThread;
+    int Level = 0;
+    boolean SpacePressed, RightKeyPressed,
+            LeftKeyPressed;
+    final int RectScale = 2, gxs = 40, gys = 80;
+    final static int ScreenX, ScreenY;
     Color DebugColor = Color.BLUE;
-    Rectangle Guy = new Rectangle((int) gx, (int) gy, gxs, gys);
+    GameCharacter Guy = new GameCharacter(0, 0, 40, 80, this);
+    ArrayList<GameCharacter> Characters;
+    boolean stopped = false;
 
-    {
+    static {
         ScreenX = Toolkit.getDefaultToolkit().getScreenSize().width;
         ScreenY = Toolkit.getDefaultToolkit().getScreenSize().height;
-        gx = 10;
-        gy = ScreenY - 150;
     }
 
-    Rectangle RWP(int x, int y, int xs, int ys) {
-        Rectangle tmp = new Rectangle(x, y, xs, ys);
-        tmp.grow(-2, -2);
-        return tmp;
-    }
-    private volatile ArrayList<ArrayList<RectWithProps>> Rects = new ArrayList<ArrayList<RectWithProps>>() {
-        private static final long serialVersionUID = 1L;
-
-        {
-            add(
-                    new ArrayList<RectWithProps>() {
-                        private static final long serialVersionUID = 1L;
-
-                        {
-                            add(new RectWithProps(RWP(200, ScreenY - 150, 100, 20), "w"));//rand platf
-                            add(new RectWithProps(RWP(500, ScreenY - 250, 100, 20), "w"));//rand platf
-                            add(new RectWithProps(RWP(800, ScreenY - 350, 100, 20), "w"));//rand platf
-                            add(new RectWithProps(RWP(1100, ScreenY - 450, 100, 20), "w"));//rand platf
-                        }
-                    }
-            );
-            add(
-                    new ArrayList<RectWithProps>() {
-                        private static final long serialVersionUID = 1L;
-
-                        {
-                            add(new RectWithProps(RWP(800, 0, 100, 1000), "w"));//rand platf WallDemo
-                        }
-                    });
-        }
-    };
+    static volatile ArrayList<ArrayList<RectWithProps>> Levels;
 
     void collisionCheck() {
-        canJump = false;
-        canWallJump = false;
-        for (RectWithProps g : Rects.get(Level)) {
+        Guy.canJump = false;
+        Guy.canWallJump = false;
+        for (RectWithProps g : Levels.get(Level)) {
             if (Guy != g.rect) {
+
                 Rectangle tmprect = ((Rectangle) g.rect.clone());
                 tmprect.grow(RectScale, RectScale);
-                if (g.rect.x + RectScale > Guy.x + Guy.width) {
-                    g.isLeft = true;
-                    g.isMiddleX = false;
-                } else if (g.rect.x + g.rect.width < Guy.x + RectScale) {
-                    g.isLeft = false;
-                    g.isMiddleX = false;
-                } else {
-                    g.isMiddleX = true;
-                }
-                if (g.rect.y + RectScale > Guy.y + Guy.height) {
-                    g.isTop = true;
-                    g.isMiddleY = false;
-                } else if (g.rect.y + g.rect.height < Guy.y + RectScale) {
-                    g.isTop = false;
-                    g.isMiddleY = false;
-                } else {
-                    g.isMiddleY = true;
-                }
                 if (Guy.intersects(tmprect)) {
-                    WallJumpLeft = g.isLeft;
-                    ableWallJump = !g.isMiddleX;
-                    if (g.isMiddleX && g.isMiddleY) {
-                        if (g.isTop) {
-                            gmy = 0;
-                            gy -= 1;
+                    if (g.rect.x + RectScale > Guy.gx + Guy.gxs) {
+                        Guy.isLeft = true;
+                        Guy.isMiddleX = false;
+                    } else if (g.rect.x + g.rect.width < Guy.gx + RectScale) {
+                        Guy.isLeft = false;
+                        Guy.isMiddleX = false;
+                    } else {
+                        Guy.isMiddleX = true;
+                    }
+                    if (g.rect.y + RectScale > Guy.gy + Guy.gys) {
+                        Guy.isTop = true;
+                        Guy.isMiddleY = false;
+                    } else if (g.rect.y + g.rect.height < Guy.gy + RectScale) {
+                        Guy.isTop = false;
+                        Guy.isMiddleY = false;
+                    } else {
+                        Guy.isMiddleY = true;
+                    }
+                    //WallJumpLeft = g.isLeft;
+                    Guy.ableWallJump = !Guy.isMiddleX;
+                    if (Guy.isMiddleX && Guy.isMiddleY) {
+                        if (Guy.isTop) {
+                            Guy.gmy = 0;
+                            Guy.gy -= 1;
                         } else {
-                            gmy = 0;
-                            gy += 1;
+                            Guy.gmy = 0;
+                            Guy.gy += 1;
                         }
-                        if (g.isLeft) {
-                            gmx = 0;
-                            gx -= 1;
+                        if (Guy.isLeft) {
+                            Guy.gmx = 0;
+                            Guy.gx -= 1;
                         } else {
-                            gmx = 0;
-                            gx += 1;
+                            Guy.gmx = 0;
+                            Guy.gx += 1;
                         }
-                    } else if (g.isMiddleY) {
-                        if (g.isLeft) {
-                            if (gmx > 0) {
-                                gmx = 0;
+                    } else if (Guy.isMiddleY) {
+                        if (Guy.isLeft) {
+                            if (Guy.gmx > 0) {
+                                Guy.gmx = 0;
                             }
-                        } else if (gmx < 0) {
-                            gmx = 0;
+                        } else if (Guy.gmx < 0) {
+                            Guy.gmx = 0;
                         }
-                    } else if (g.isMiddleX) {
-                        if (g.isTop) {
-                            if (gmy > 0) {
-                                gmy = 0;
+                    } else if (Guy.isMiddleX) {
+                        if (Guy.isTop) {
+                            if (Guy.gmy > 0) {
+                                Guy.gmy = 0;
                             }
-                        } else if (gmy < 0) {
-                            gmy = 0;
+                        } else if (Guy.gmy < 0) {
+                            Guy.gmy = 0;
                         }
                     }
-                    if (g.isTop && g.isMiddleX) {
-                        canJump = true;
+                    if (Guy.isTop && Guy.isMiddleX) {
+                        Guy.canJump = true;
                     }
-                    if (g.Props.contains("w") && g.isMiddleY) {
-                        canWallJump = true;
+                    if (g.Props.contains("w") && Guy.isMiddleY) {
+                        Guy.canWallJump = true;
                     }
                 }
             }
         }
-    }
-
-    public void GamePhysThread() {
-        if (gy >= ScreenY - (gys + 10)) {
-            gmy = 0;
-            canJump = true;
-            gy = ScreenY - (gys + 10);
-        } else if (gy < 0) {
-            gmy = 0;
-            gy = 0;
-        } else {
-            gmy += 2;
-        }
-        if (gx + gxs > ScreenX) {
-            gx = ScreenX - gxs;
-            gmx = 0;
-        } else if (gx < 0) {
-            gx = 0;
-            gmx = 0;
-        } else if (RightKeyPressed) {
-            gmx += 0.07;
-        } else if (LeftKeyPressed) {
-            gmx -= 0.07;
-        }
-        if (SpacePressed && (canJump || (canWallJump && ableWallJump))) {
-            if (canWallJump && ableWallJump && !canJump) {
-                if (WallJumpLeft && RightKeyPressed) {
-                    gmx = -6;
-                    gmy = -220.0;
-                } else if (!WallJumpLeft && LeftKeyPressed) {
-                    gmx = 6;
-                    gmy = -220.0;
-                }
-            } else {
-                gmy = -220.0;
-            }
-        }
-        gmx *= 0.97;
-        collisionCheck();
-        gx += gmx;
-        gy += gmy / 70;
-        Guy.x = (int) gx;
-        Guy.y = (int) gy;
         try {
             Thread.sleep(5);
         } catch (InterruptedException ex) {
+            ex.printStackTrace();
         }
     }
 
     public void init() {
         KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
-        manager.addKeyEventDispatcher(this);
+        manager.addKeyEventDispatcher(Guy);
         setBounds(0, 0, ScreenX, ScreenY);
         addMouseListener(this);
+        Thread GamePhysThread = new Thread(() -> {
+            while (true) {
+                collisionCheck();
+            }
+        }
+        );
+        GamePhysThread.setDaemon(true);
+        GamePhysThread.start();
     }
 
     public GameRenderer() {
@@ -198,7 +133,7 @@ public class GameRenderer extends Canvas implements MouseListener, KeyEventDispa
     public void render(Graphics2D g) {
         g.setColor(Color.ORANGE);
         g.fillRect(0, 0, ScreenX, ScreenY);
-        for (RectWithProps r : Rects.get(Level)) {
+        for (RectWithProps r : Levels.get(Level)) {
             Rectangle tr = (Rectangle) r.rect.clone();
             tr.grow(RectScale, RectScale);
             g.setColor(DebugColor);
@@ -207,15 +142,15 @@ public class GameRenderer extends Canvas implements MouseListener, KeyEventDispa
             g.drawRect(tr.x, tr.y, tr.width, tr.height);
         }
         g.setColor(DebugColor);
-        g.fillRect(Guy.x, Guy.y-2, Guy.width, Guy.height);
+        g.fillRect(Guy.x, Guy.y - 2, Guy.width, Guy.height);
         g.fillRect(0, ScreenY - 12, ScreenX, 12);
-        //g.setColor(Color.BLACK);
-        g.drawRect(Guy.x, Guy.y-2, Guy.width, Guy.height);
-        g.drawRect(0, ScreenY - 12, ScreenX, 12);
+        g.setColor(Color.BLACK);
+        g.drawString("" + Guy.x + " " + Guy.y, 100, 100);
     }
 
     public void gameLoop() {
         Graphics2D g = (Graphics2D) getBufferStrategy().getDrawGraphics();
+//        collisionCheck();
         RenderingHints rh = new RenderingHints(
                 RenderingHints.KEY_TEXT_ANTIALIASING,
                 RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
@@ -242,14 +177,6 @@ public class GameRenderer extends Canvas implements MouseListener, KeyEventDispa
         };
         GameRenderThread.setDaemon(true);
         GameRenderThread.start();
-        GamePhysThread = new Thread(() -> {
-            while (true) {
-                GamePhysThread();
-            }
-        }
-        );
-        GamePhysThread.setDaemon(true);
-        GamePhysThread.start();
     }
 
     @Override
