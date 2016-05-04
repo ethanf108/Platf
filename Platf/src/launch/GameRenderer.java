@@ -8,14 +8,15 @@ import java.awt.KeyboardFocusManager;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Toolkit;
-import java.awt.event.KeyEvent;//k
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.image.BufferStrategy;
 import java.util.ArrayList;
 
-public strictfp class GameRenderer extends Canvas implements MouseListener, KeyEventDispatcher {
+public class GameRenderer extends Canvas implements MouseListener, KeyEventDispatcher {
 
+    private static final long serialVersionUID = 1L;
     private int Level = 0;
     private double gx, gy, gmx = 0, gmy = 0;
     private boolean SpacePressed, RightKeyPressed, canJump = true,
@@ -44,28 +45,24 @@ public strictfp class GameRenderer extends Canvas implements MouseListener, KeyE
         {
             add(
                     new ArrayList<RectWithProps>() {
-                {
-                    add(new RectWithProps(RWP(0, ScreenY - 10, ScreenX, 10), ""));//floor
-                    add(new RectWithProps(RWP(ScreenX, 0, 10, ScreenY), ""));//right wall
-                    add(new RectWithProps(RWP(-10, 0, 10, ScreenY), ""));//left wall
-                    add(new RectWithProps(RWP(0, -10, ScreenX, 10), ""));//ceil
-                    add(new RectWithProps(RWP(200, ScreenY - 150, 100, 20), "w"));//rand platf
-                    add(new RectWithProps(RWP(500, ScreenY - 250, 100, 20), "w"));//rand platf
-                    add(new RectWithProps(RWP(800, ScreenY - 350, 100, 20), "w"));//rand platf
-                    add(new RectWithProps(RWP(1100, ScreenY - 450, 100, 20), "w"));//rand platf
-                }
-            }
+                        private static final long serialVersionUID = 1L;
+
+                        {
+                            add(new RectWithProps(RWP(200, ScreenY - 150, 100, 20), "w"));//rand platf
+                            add(new RectWithProps(RWP(500, ScreenY - 250, 100, 20), "w"));//rand platf
+                            add(new RectWithProps(RWP(800, ScreenY - 350, 100, 20), "w"));//rand platf
+                            add(new RectWithProps(RWP(1100, ScreenY - 450, 100, 20), "w"));//rand platf
+                        }
+                    }
             );
             add(
                     new ArrayList<RectWithProps>() {
-                {
-                    add(new RectWithProps(RWP(0, ScreenY - 10, ScreenX, 10), ""));//floor
-                    add(new RectWithProps(RWP(ScreenX, 0, 10, ScreenY), ""));//right wall
-                    add(new RectWithProps(RWP(-10, 0, 10, ScreenY), ""));//left wall
-                    add(new RectWithProps(RWP(0, -10, ScreenX, 10), ""));//ceil
-                    add(new RectWithProps(RWP(800, 0, 100, 1000), "w"));//rand platf WallDemo
-                }
-            });
+                        private static final long serialVersionUID = 1L;
+
+                        {
+                            add(new RectWithProps(RWP(800, 0, 100, 1000), "w"));//rand platf WallDemo
+                        }
+                    });
         }
     };
 
@@ -106,11 +103,11 @@ public strictfp class GameRenderer extends Canvas implements MouseListener, KeyE
                             gy += 1;
                         }
                         if (g.isLeft) {
-                            gmy = 0;
-                            gy -= 1;
+                            gmx = 0;
+                            gx -= 1;
                         } else {
-                            gmy = 0;
-                            gy += 1;
+                            gmx = 0;
+                            gx += 1;
                         }
                     } else if (g.isMiddleY) {
                         if (g.isLeft) {
@@ -145,10 +142,19 @@ public strictfp class GameRenderer extends Canvas implements MouseListener, KeyE
             gmy = 0;
             canJump = true;
             gy = ScreenY - (gys + 10);
+        } else if (gy < 0) {
+            gmy = 0;
+            gy = 0;
         } else {
             gmy += 2;
         }
-        if (RightKeyPressed) {
+        if (gx + gxs > ScreenX) {
+            gx = ScreenX - gxs;
+            gmx = 0;
+        } else if (gx < 0) {
+            gx = 0;
+            gmx = 0;
+        } else if (RightKeyPressed) {
             gmx += 0.07;
         } else if (LeftKeyPressed) {
             gmx -= 0.07;
@@ -166,7 +172,7 @@ public strictfp class GameRenderer extends Canvas implements MouseListener, KeyE
                 gmy = -220.0;
             }
         }
-        gmx *= 0.98;
+        gmx *= 0.97;
         collisionCheck();
         gx += gmx;
         gy += gmy / 70;
@@ -192,14 +198,20 @@ public strictfp class GameRenderer extends Canvas implements MouseListener, KeyE
     public void render(Graphics2D g) {
         g.setColor(Color.ORANGE);
         g.fillRect(0, 0, ScreenX, ScreenY);
-        g.setColor(Color.BLUE);
-        g.fillRect(Guy.x, Guy.y, Guy.width, Guy.height);
         for (RectWithProps r : Rects.get(Level)) {
             Rectangle tr = (Rectangle) r.rect.clone();
             tr.grow(RectScale, RectScale);
             g.setColor(DebugColor);
             g.fillRect(tr.x, tr.y, tr.width, tr.height);
+            //g.setColor(Color.BLACK);
+            g.drawRect(tr.x, tr.y, tr.width, tr.height);
         }
+        g.setColor(DebugColor);
+        g.fillRect(Guy.x, Guy.y-2, Guy.width, Guy.height);
+        g.fillRect(0, ScreenY - 12, ScreenX, 12);
+        //g.setColor(Color.BLACK);
+        g.drawRect(Guy.x, Guy.y-2, Guy.width, Guy.height);
+        g.drawRect(0, ScreenY - 12, ScreenX, 12);
     }
 
     public void gameLoop() {

@@ -4,7 +4,8 @@ import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
-public class MainWindow extends JFrame {
+public final class MainWindow extends JFrame {
+    private static final long serialVersionUID = 1L;
 
     GameRenderer GameRenderPanel = null;
 
