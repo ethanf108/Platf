@@ -1,9 +1,8 @@
 package launch;
 
-import java.awt.Color;
 import java.awt.KeyEventDispatcher;
+import java.awt.KeyboardFocusManager;
 import java.awt.Rectangle;
-import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
 
 public class GameCharacter extends Rectangle implements KeyEventDispatcher {
@@ -12,46 +11,52 @@ public class GameCharacter extends Rectangle implements KeyEventDispatcher {
     private boolean RightKeyPressed;
     private boolean LeftKeyPressed;
     double gmx, gmy, gx, gy, gys, gxs;
-    private static final int ScreenX, ScreenY;
-    boolean canJump, canWallJump, ableWallJump, isLeft,isMiddleX,isMiddleY,isTop;
-    private GameRenderer World;
+    boolean canJump, canWallJump, ableWallJump, isLeft, isMiddleX, isMiddleY, isTop;
+    private final World World;
+    public int keyL=KeyEvent.VK_LEFT,keyS=KeyEvent.VK_SPACE,keyR=KeyEvent.VK_RIGHT;
+    boolean isActive;
+    private Thread GamePhysThread;
 
-    static{
-        ScreenX = Toolkit.getDefaultToolkit().getScreenSize().width;
-        ScreenY = Toolkit.getDefaultToolkit().getScreenSize().height;
+    public void start() {
+        isActive = true;
+        GamePhysThread.start();
+    }
+    public void stop(){
+        isActive=false;
     }
 
-    public GameCharacter(int x, int y, int xs, int ys,GameRenderer world) {
+    public GameCharacter(int x, int y, int xs, int ys, World world) {
+        KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
+        manager.addKeyEventDispatcher(this);
         this.x = x;
         this.y = y;
         this.width = xs;
         this.height = ys;
-        this.gxs=xs;
-        this.gys=ys;
-        this.World=world;
-        Thread GamePhysThread = new Thread(() -> {
-            while (true) {
+        this.gxs = xs;
+        this.gys = ys;
+        this.World = world;
+        GamePhysThread = new Thread(() -> {
+            while (isActive) {
                 update();
             }
         }
         );
         GamePhysThread.setDaemon(true);
-        GamePhysThread.start();
     }
 
     public void update() {
-        if (gy >= ScreenY - (gys + 10)) {
+        if (gy >= World.ScreenY - (gys + 10)) {
             gmy = 0;
             canJump = true;
-            gy = ScreenY - (gys + 10);
+            gy = World.ScreenY - (gys + 10);
         } else if (gy < 0) {
             gmy = 0;
             gy = 0;
         } else {
             gmy += 2;
         }
-        if (gx + gxs > ScreenX) {
-            gx = ScreenX - gxs;
+        if (gx + gxs > World.ScreenX) {
+            gx = World.ScreenX - gxs;
             gmx = 0;
         } else if (gx < 0) {
             gx = 0;
@@ -88,23 +93,23 @@ public class GameCharacter extends Rectangle implements KeyEventDispatcher {
     @Override
     public boolean dispatchKeyEvent(KeyEvent e) {
         if (e.getID() == KeyEvent.KEY_RELEASED) {
-            if (e.getKeyCode() == KeyEvent.VK_UP) {
+            if (e.getKeyCode() == keyS) {
                 SpacePressed = false;
             }
-            if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
+            if (e.getKeyCode() == keyR) {
                 RightKeyPressed = false;
             }
-            if (e.getKeyCode() == KeyEvent.VK_LEFT) {
+            if (e.getKeyCode() == keyL) {
                 LeftKeyPressed = false;
             }
         } else {
-            if (e.getKeyCode() == KeyEvent.VK_UP) {
+            if (e.getKeyCode() == keyS) {
                 SpacePressed = true;
             }
-            if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
+            if (e.getKeyCode() == keyR) {
                 RightKeyPressed = true;
             }
-            if (e.getKeyCode() == KeyEvent.VK_LEFT) {
+            if (e.getKeyCode() == keyL) {
                 LeftKeyPressed = true;
             }
         }
