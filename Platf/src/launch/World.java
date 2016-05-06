@@ -11,7 +11,7 @@ import java.awt.event.MouseListener;
 import java.awt.image.BufferStrategy;
 import java.util.ArrayList;
 
-public class World extends Canvas implements MouseListener {
+public class World {
 
     private static final long serialVersionUID = 1L;
     int Level = 0;
@@ -19,39 +19,35 @@ public class World extends Canvas implements MouseListener {
     final int ScreenX, ScreenY;
     Color DebugColor = Color.BLUE;
     ArrayList<GameCharacter> Characters = new ArrayList<>();
-    ArrayList<ArrayList<RectWithProps>> Levels = new ArrayList<>();
+    ArrayList<ArrayList<Platform>> Levels = new ArrayList<>();
     boolean stopped = false;
     private Thread CollisionThread;
 
-    {
-        ScreenX = Toolkit.getDefaultToolkit().getScreenSize().width;
-        ScreenY = Toolkit.getDefaultToolkit().getScreenSize().height;
-    }
 
     void collisionCheck() {
         for (GameCharacter gc : Characters) {
             gc.canJump = false;
             gc.canWallJump = false;
         }
-        for (RectWithProps g : Levels.get(Level)) {
+        for (Platform g : Levels.get(Level)) {
 
-            Rectangle tmprect = ((Rectangle) g.rect.clone());
+            Rectangle tmprect = ((Rectangle) g.clone());
             tmprect.grow(RectScale, RectScale);
             for (GameCharacter gc : Characters) {
                 if (gc.intersects(tmprect)) {
-                    if (g.rect.x + RectScale > gc.gx + gc.gxs) {
+                    if (g.x + RectScale > gc.gx + gc.gxs) {
                         gc.isLeft = true;
                         gc.isMiddleX = false;
-                    } else if (g.rect.x + g.rect.width < gc.gx + RectScale) {
+                    } else if (g.x + g.width < gc.gx + RectScale) {
                         gc.isLeft = false;
                         gc.isMiddleX = false;
                     } else {
                         gc.isMiddleX = true;
                     }
-                    if (g.rect.y + RectScale > gc.gy + gc.gys) {
+                    if (g.y + RectScale > gc.gy + gc.gys) {
                         gc.isTop = true;
                         gc.isMiddleY = false;
-                    } else if (g.rect.y + g.rect.height < gc.gy + RectScale) {
+                    } else if (g.y + g.height < gc.gy + RectScale) {
                         gc.isTop = false;
                         gc.isMiddleY = false;
                     } else {
@@ -64,15 +60,15 @@ public class World extends Canvas implements MouseListener {
                             gc.gy -= 1;
                         } else {
                             gc.gmy = 0;
-                            gc.gy += 1;
-                        }
+                            gc.gy += 5;
+                        }/*
                         if (gc.isLeft) {
                             gc.gmx = 0;
                             gc.gx -= 1;
                         } else {
                             gc.gmx = 0;
                             gc.gx += 1;
-                        }
+                        }*/
                     } else if (gc.isMiddleY) {
                         if (gc.isLeft) {
                             if (gc.gmx > 0) {
@@ -107,10 +103,8 @@ public class World extends Canvas implements MouseListener {
     }
 
     public void init() {
-        setBounds(0, 0, ScreenX, ScreenY);
-        addMouseListener(this);
         CollisionThread = new Thread(() -> {
-            while (true) {
+            while (!stopped) {
                 collisionCheck();
             }
         }
@@ -118,81 +112,20 @@ public class World extends Canvas implements MouseListener {
         CollisionThread.setDaemon(true);
     }
 
-    public World() {
-        super();
-    }
-
-    public void render(Graphics2D g) {
-        g.setColor(Color.ORANGE);
-        g.fillRect(0, 0, ScreenX, ScreenY);
-        for (RectWithProps r : Levels.get(Level)) {
-            Rectangle tr = (Rectangle) r.rect.clone();
-            tr.grow(RectScale, RectScale);
-            g.setColor(DebugColor);
-            g.fillRect(tr.x, tr.y, tr.width, tr.height);
-        }
-        for (GameCharacter gc : Characters) {
-            if (gc.isActive) {
-                g.setColor(DebugColor);
-                g.fillRect(gc.x, gc.y, gc.width, gc.height);
-            }
-        }
-        g.setColor(DebugColor);
-        g.fillRect(0, ScreenY - 12, ScreenX, 12);
-    }
-
-    public void gameLoop() {
-        Graphics2D g = (Graphics2D) getBufferStrategy().getDrawGraphics();
-        RenderingHints rh = new RenderingHints(
-                RenderingHints.KEY_TEXT_ANTIALIASING,
-                RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-        g.setRenderingHints(rh);
-        this.render(g);
-        g.dispose();
-        BufferStrategy strategy = getBufferStrategy();
-        if (!strategy.contentsLost()) {
-            strategy.show();
-        }
-        Toolkit.getDefaultToolkit().sync();
-    }
-
     public void start() {
-        setIgnoreRepaint(true);
-        createBufferStrategy(2);
-        Thread GameRenderThread = new Thread() {
-            @Override
-            public void run() {
-                while (!stopped) {
-                    gameLoop();
-                }
-            }
-        };
-        GameRenderThread.setDaemon(true);
-        GameRenderThread.start();
         CollisionThread.start();
     }
 
-    @Override
-    public void mouseClicked(MouseEvent e) {
-        stopped = true;
-        System.exit(0);
+    public World(int sx, int sy) {
+        super();
+        ScreenX=sx;
+        ScreenY=sy;
     }
 
-    @Override
-    public void mousePressed(MouseEvent e) {
+    public ArrayList<Rectangle> getDrawBodies() {
+        ArrayList tmp = (ArrayList) Levels.get(Level).clone();
+        tmp.addAll((ArrayList) Characters.clone());
+        return tmp;
     }
 
-    @Override
-    public void mouseReleased(MouseEvent e) {
-    }
-
-    @Override
-    public void mouseEntered(MouseEvent e) {
-    }
-
-    @Override
-    public void mouseExited(MouseEvent e) {
-    }
-
-    
 }

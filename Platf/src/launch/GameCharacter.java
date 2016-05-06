@@ -13,9 +13,9 @@ public class GameCharacter extends Rectangle implements KeyEventDispatcher {
     double gmx, gmy, gx, gy, gys, gxs;
     boolean canJump, canWallJump, ableWallJump, isLeft, isMiddleX, isMiddleY, isTop;
     private final World World;
-    public int keyL=KeyEvent.VK_LEFT,keyS=KeyEvent.VK_SPACE,keyR=KeyEvent.VK_RIGHT;
+    public int keyL=KeyEvent.VK_LEFT,keyS=KeyEvent.VK_UP,keyR=KeyEvent.VK_RIGHT;
     boolean isActive;
-    private Thread GamePhysThread;
+    private final Thread GamePhysThread;
 
     public void start() {
         isActive = true;
