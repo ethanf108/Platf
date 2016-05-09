@@ -1,14 +1,7 @@
 package launch;
 
-import java.awt.Canvas;
 import java.awt.Color;
-import java.awt.Graphics2D;
 import java.awt.Rectangle;
-import java.awt.RenderingHints;
-import java.awt.Toolkit;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.image.BufferStrategy;
 import java.util.ArrayList;
 
 public class World {
@@ -23,19 +16,17 @@ public class World {
     boolean stopped = false;
     private Thread CollisionThread;
 
-
     void collisionCheck() {
         for (GameCharacter gc : Characters) {
             gc.canJump = false;
             gc.canWallJump = false;
         }
         for (Platform g : Levels.get(Level)) {
-
             Rectangle tmprect = ((Rectangle) g.clone());
             tmprect.grow(RectScale, RectScale);
             for (GameCharacter gc : Characters) {
                 if (gc.intersects(tmprect)) {
-                    if (g.x + RectScale > gc.gx + gc.gxs) {
+                    if (g.x + RectScale > gc.gx + gc.width) {
                         gc.isLeft = true;
                         gc.isMiddleX = false;
                     } else if (g.x + g.width < gc.gx + RectScale) {
@@ -44,7 +35,7 @@ public class World {
                     } else {
                         gc.isMiddleX = true;
                     }
-                    if (g.y + RectScale > gc.gy + gc.gys) {
+                    if (g.y + RectScale > gc.gy + gc.height) {
                         gc.isTop = true;
                         gc.isMiddleY = false;
                     } else if (g.y + g.height < gc.gy + RectScale) {
@@ -53,7 +44,6 @@ public class World {
                     } else {
                         gc.isMiddleY = true;
                     }
-                    gc.ableWallJump = !gc.isMiddleX;
                     if (gc.isMiddleX && gc.isMiddleY) {
                         if (gc.isTop) {
                             gc.gmy = 0;
@@ -90,7 +80,7 @@ public class World {
                         gc.canJump = true;
                     }
                     if (g.Props.contains("w") && gc.isMiddleY) {
-                        gc.canWallJump = true;
+                        gc.canWallJump = !gc.isMiddleX;
                     }
                 }
             }
@@ -98,7 +88,7 @@ public class World {
         try {
             Thread.sleep(5);
         } catch (InterruptedException ex) {
-            ex.printStackTrace();
+            System.err.println("ERROR");
         }
     }
 
@@ -116,10 +106,17 @@ public class World {
         CollisionThread.start();
     }
 
+    public void stop() {
+        for (GameCharacter g : Characters) {
+            g.stop();
+        }
+        stopped = true;
+    }
+
     public World(int sx, int sy) {
         super();
-        ScreenX=sx;
-        ScreenY=sy;
+        ScreenX = sx;
+        ScreenY = sy;
     }
 
     public ArrayList<Rectangle> getDrawBodies() {

@@ -5,17 +5,18 @@ import java.awt.KeyboardFocusManager;
 import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 
-public class GameCharacter extends Rectangle implements KeyEventDispatcher {
+public class GameCharacter extends Platform implements KeyEventDispatcher {
 
     private boolean SpacePressed;
     private boolean RightKeyPressed;
     private boolean LeftKeyPressed;
-    double gmx, gmy, gx, gy, gys, gxs;
-    boolean canJump, canWallJump, ableWallJump, isLeft, isMiddleX, isMiddleY, isTop;
-    private final World World;
+    double gmx, gmy, gx, gy;
+    boolean canJump, canWallJump;
     public int keyL=KeyEvent.VK_LEFT,keyS=KeyEvent.VK_UP,keyR=KeyEvent.VK_RIGHT;
     boolean isActive;
     private final Thread GamePhysThread;
+    private final int ScreenX;
+    private final int ScreenY;
 
     public void start() {
         isActive = true;
@@ -24,17 +25,14 @@ public class GameCharacter extends Rectangle implements KeyEventDispatcher {
     public void stop(){
         isActive=false;
     }
-
-    public GameCharacter(int x, int y, int xs, int ys, World world) {
+    public GameCharacter(Rectangle r,int x, int y) {
+        super(r,"p");
         KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
         manager.addKeyEventDispatcher(this);
-        this.x = x;
-        this.y = y;
-        this.width = xs;
-        this.height = ys;
-        this.gxs = xs;
-        this.gys = ys;
-        this.World = world;
+        this.ScreenX=x;
+        this.ScreenY=y;
+        gy=r.y;
+        gx=r.x;
         GamePhysThread = new Thread(() -> {
             while (isActive) {
                 update();
@@ -43,20 +41,19 @@ public class GameCharacter extends Rectangle implements KeyEventDispatcher {
         );
         GamePhysThread.setDaemon(true);
     }
-
     public void update() {
-        if (gy >= World.ScreenY - (gys + 10)) {
+        if (gy >= ScreenY - (height + 10)) {
             gmy = 0;
             canJump = true;
-            gy = World.ScreenY - (gys + 10);
+            gy = ScreenY - (height + 10);
         } else if (gy < 0) {
             gmy = 0;
             gy = 0;
         } else {
             gmy += 2;
         }
-        if (gx + gxs > World.ScreenX) {
-            gx = World.ScreenX - gxs;
+        if (gx + width > ScreenX) {
+            gx = ScreenX - width;
             gmx = 0;
         } else if (gx < 0) {
             gx = 0;
@@ -66,8 +63,8 @@ public class GameCharacter extends Rectangle implements KeyEventDispatcher {
         } else if (LeftKeyPressed) {
             gmx -= 0.07;
         }
-        if (SpacePressed && (canJump || (canWallJump && ableWallJump))) {
-            if (canWallJump && ableWallJump && !canJump) {
+        if (SpacePressed && (canJump || canWallJump)) {
+            if (canWallJump && !canJump) {
                 if (isLeft && RightKeyPressed) {
                     gmx = -6;
                     gmy = -220.0;
