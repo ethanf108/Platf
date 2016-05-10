@@ -15,8 +15,9 @@ public class GameCharacter extends Platform implements KeyEventDispatcher {
     public int keyL=KeyEvent.VK_LEFT,keyS=KeyEvent.VK_UP,keyR=KeyEvent.VK_RIGHT;
     boolean isActive;
     private final Thread GamePhysThread;
-    private final int ScreenX;
-    private final int ScreenY;
+    private int ScreenX;
+    private int ScreenY;
+    private final World world;
 
     public void start() {
         isActive = true;
@@ -25,12 +26,13 @@ public class GameCharacter extends Platform implements KeyEventDispatcher {
     public void stop(){
         isActive=false;
     }
-    public GameCharacter(Rectangle r,int x, int y) {
+    public GameCharacter(Rectangle r,World w) {
         super(r,"p");
         KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
         manager.addKeyEventDispatcher(this);
-        this.ScreenX=x;
-        this.ScreenY=y;
+        this.ScreenX=w.Levels.get(w.Level).xs;
+        this.ScreenY=w.Levels.get(w.Level).ys;
+        this.world = w;
         gy=r.y;
         gx=r.x;
         GamePhysThread = new Thread(() -> {
@@ -42,6 +44,8 @@ public class GameCharacter extends Platform implements KeyEventDispatcher {
         GamePhysThread.setDaemon(true);
     }
     public void update() {
+        ScreenX=world.Levels.get(world.Level).xs;
+        ScreenY=world.Levels.get(world.Level).ys;
         if (gy >= ScreenY - (height + 10)) {
             gmy = 0;
             canJump = true;

@@ -12,7 +12,7 @@ public class World {
     final int ScreenX, ScreenY;
     Color DebugColor = Color.BLUE;
     ArrayList<GameCharacter> Characters = new ArrayList<>();
-    ArrayList<ArrayList<Platform>> Levels = new ArrayList<>();
+    ArrayList<Level> Levels = new ArrayList<>();
     boolean stopped = false;
     private Thread CollisionThread;
 
@@ -62,10 +62,12 @@ public class World {
                     } else if (gc.isMiddleY) {
                         if (gc.isLeft) {
                             if (gc.gmx > 0) {
+                            gc.gx -= 1;
                                 gc.gmx = 0;
                             }
                         } else if (gc.gmx < 0) {
                             gc.gmx = 0;
+                            gc.gx += 1;
                         }
                     } else if (gc.isMiddleX) {
                         if (gc.isTop) {

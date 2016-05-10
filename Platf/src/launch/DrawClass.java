@@ -9,16 +9,17 @@ import java.awt.Toolkit;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.image.BufferStrategy;
+import java.awt.image.BufferedImage;
 
 public class DrawClass extends Canvas implements MouseListener {
 
     private final int ScreenX, ScreenY;
     private final World world;
 
-    public DrawClass(int x, int y,World w) {
+    public DrawClass(int x, int y, World w) {
         ScreenX = x;
         ScreenY = y;
-        world=w;
+        world = w;
     }
 
     public void gameLoop() {
@@ -35,21 +36,63 @@ public class DrawClass extends Canvas implements MouseListener {
         }
         Toolkit.getDefaultToolkit().sync();
     }
+    int oldLevel = 0;
+    BufferedImage LevelBackdrop = null;
 
-    public void render(Graphics2D g) {
+    public void setBackdrop() {
+        LevelBackdrop = new BufferedImage(world.Levels.get(world.Level).xs, world.Levels.get(world.Level).ys, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = LevelBackdrop.createGraphics();
         g.setColor(Color.ORANGE);
-        g.fillRect(0, 0, ScreenX, ScreenY);
-        for (Rectangle r : world.getDrawBodies()) {
+        g.fillRect(0, 0, world.Levels.get(world.Level).xs, world.Levels.get(world.Level).ys);
+        g.setColor(Color.BLUE);
+        for (Rectangle r : world.Levels.get(world.Level)) {
             Rectangle tr = (Rectangle) r.clone();
             tr.grow(2, 2);
-            g.setColor(Color.BLUE);
             g.fillRect(tr.x, tr.y, tr.width, tr.height);
         }
         g.setColor(Color.BLUE);
-        g.fillRect(0, ScreenY - 12, ScreenX, 12);
+        g.fillRect(0, world.Levels.get(world.Level).ys - 12, world.Levels.get(world.Level).xs, 12);
+    }
+
+    public void render(Graphics2D g) {
+        if (oldLevel != world.Level) {
+            oldLevel = world.Level;
+            setBackdrop();
+        }
+        g.setColor(Color.ORANGE);
+        g.fillRect(0, 0, ScreenX-world.Levels.get(world.Level).xs, ScreenX-world.Levels.get(world.Level).ys);
+        g.setColor(Color.BLUE);
+        Rectangle tr = (Rectangle) world.Characters.get(0).clone();
+        tr.grow(2, 2);
+        int x,ix,y,iy;
+        if (tr.x < ScreenX/2) {
+            x=tr.x;
+            ix=0;
+        } else if(tr.x>world.Levels.get(world.Level).xs-(ScreenX/2)){
+            ix=ScreenX-world.Levels.get(world.Level).xs;
+            x=(ScreenX)-(world.Levels.get(world.Level).xs-(tr.x));
+        }else{
+            ix=(ScreenX/2)-tr.x;
+            x=ScreenX/2;
+        }
+        if (tr.y < ScreenY/2) {
+            y=tr.y;
+            iy=0;
+        } else if(tr.y>world.Levels.get(world.Level).ys-(ScreenY/2)){
+            iy=ScreenY-world.Levels.get(world.Level).ys;
+            y=(ScreenY)-(world.Levels.get(world.Level).ys-(tr.y));
+        }else{
+            iy=(ScreenY/2)-tr.y;
+            y=ScreenY/2;
+        }
+        g.drawImage(LevelBackdrop, null, ix, iy);
+        g.fillRect(x, y, tr.width, tr.height);
     }
 
     public void start() {
+        oldLevel = world.Level;
+        LevelBackdrop = new BufferedImage(ScreenX*2, ScreenY, BufferedImage.TYPE_INT_RGB);
+        setBackdrop();
         setBounds(0, 0, ScreenX, ScreenY);
         addMouseListener(this);
         setIgnoreRepaint(true);
