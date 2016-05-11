@@ -86,7 +86,7 @@ public class GameCharacter extends Platform implements KeyEventDispatcher {
         x = (int) gx;
         y = (int) gy;
         try {
-            Thread.sleep(5);
+            Thread.sleep(world.getSpeed());
         } catch (InterruptedException ex) {
         }
     }

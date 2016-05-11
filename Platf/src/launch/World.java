@@ -13,7 +13,11 @@ public class World {
     Color DebugColor = Color.BLUE;
     ArrayList<GameCharacter> Characters = new ArrayList<>();
     ArrayList<Level> Levels = new ArrayList<>();
-    boolean stopped = false;
+    private boolean stopped = false;
+    private char CollisionDelay = 5;
+    public final char FastMode = 3;
+    public final char SlowMode = 7;
+    public final char RegularMode = 5;
     private Thread CollisionThread;
 
     void collisionCheck() {
@@ -62,7 +66,7 @@ public class World {
                     } else if (gc.isMiddleY) {
                         if (gc.isLeft) {
                             if (gc.gmx > 0) {
-                            gc.gx -= 1;
+                                gc.gx -= 1;
                                 gc.gmx = 0;
                             }
                         } else if (gc.gmx < 0) {
@@ -88,7 +92,7 @@ public class World {
             }
         }
         try {
-            Thread.sleep(5);
+            Thread.sleep(CollisionDelay-1);
         } catch (InterruptedException ex) {
             System.err.println("ERROR");
         }
@@ -106,6 +110,7 @@ public class World {
 
     public void start() {
         CollisionThread.start();
+        stopped = false;
     }
 
     public void stop() {
@@ -113,6 +118,15 @@ public class World {
             g.stop();
         }
         stopped = true;
+    }
+    public void setSpeed(char mode){
+        CollisionDelay = mode;
+    }
+    public char getSpeed(){
+        return CollisionDelay;
+    }
+    public boolean isStopped() {
+        return stopped;
     }
 
     public World(int sx, int sy) {

@@ -1,12 +1,10 @@
 package launch;
 
-import java.awt.Color;
 import java.awt.KeyEventDispatcher;
 import java.awt.KeyboardFocusManager;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
-import java.util.ArrayList;
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
@@ -50,6 +48,7 @@ public final class MainWindow extends JFrame implements KeyEventDispatcher {
         this.world = new World(ScreenX, ScreenY) {
             {
                 init();
+                setSpeed(SlowMode);
             }
         };
         this.LevelTwo = new Level(ScreenX, ScreenY) {
@@ -57,18 +56,17 @@ public final class MainWindow extends JFrame implements KeyEventDispatcher {
                 add(new Platform(new Rectangle(800, 0, 100, 1000), "w"));
             }
         };
-        this.LevelOne = new Level(ScreenX * 2, ScreenY*2) {
+        this.LevelOne = new Level(ScreenX, ScreenY) {
             {
-                add(new Platform(new Rectangle(200, ScreenY*2 - 150, 100, 20), "w"));
-                add(new Platform(new Rectangle(500, ScreenY*2 - 250, 100, 20), "w"));
-                add(new Platform(new Rectangle(800, ScreenY*2 - 350, 100, 20), "w"));
-                add(new Platform(new Rectangle(1100, ScreenY*2 - 450, 100, 20), "w"));
-              //  add(new Platform(new Rectangle(0, ScreenY - 450, (ScreenX*2)-10, 200), "w"));
+                add(new Platform(new Rectangle(200, ys - 150, 100, 20), "w"));
+                add(new Platform(new Rectangle(500, ys - 250, 100, 20), "w"));
+                add(new Platform(new Rectangle(800, ys - 350, 100, 20), "w"));
+                add(new Platform(new Rectangle(1100, ys - 450, 100, 20), "w"));
             }
         };
         world.Levels.add(LevelOne);
         world.Levels.add(LevelTwo);
-        this.MainCharacter = new GameCharacter(new Rectangle(0, ScreenY*2 - 120, 40, 80), world) {
+        this.MainCharacter = new GameCharacter(new Rectangle(0, ScreenY-120, 40, 80), world) {
             {
                 start();
             }

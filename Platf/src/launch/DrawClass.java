@@ -3,6 +3,7 @@ package launch;
 import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Toolkit;
@@ -10,9 +11,15 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
+import java.awt.image.FilteredImageSource;
+import java.awt.image.ImageFilter;
+import java.awt.image.ImageProducer;
+import java.awt.image.RGBImageFilter;
+import java.io.IOException;
+import javax.imageio.ImageIO;
 
 public class DrawClass extends Canvas implements MouseListener {
-
+    BufferedImage Character = null;
     private final int ScreenX, ScreenY;
     private final World world;
 
@@ -36,75 +43,92 @@ public class DrawClass extends Canvas implements MouseListener {
         }
         Toolkit.getDefaultToolkit().sync();
     }
-    int oldLevel = 0;
-    BufferedImage LevelBackdrop = null;
+    int x, ix, y, iy;
 
-    public void setBackdrop() {
-        LevelBackdrop = new BufferedImage(world.Levels.get(world.Level).xs, world.Levels.get(world.Level).ys, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g = LevelBackdrop.createGraphics();
+   public static Image makeColorTransparent(final BufferedImage im, final Color color)
+   {
+      final ImageFilter filter = new RGBImageFilter()
+      {
+         // the color we are looking for (white)... Alpha bits are set to opaque
+         public int markerRGB = color.getRGB() | 0xFFFFFFFF;
+
+         public final int filterRGB(final int x, final int y, final int rgb)
+         {
+            if ((rgb | 0xFF000000) == markerRGB)
+            {
+               // Mark the alpha bits as zero - transparent
+               return 0x00FFFFFF & rgb;
+            }
+            else
+            {
+               // nothing to do
+               return rgb;
+            }
+         }
+      };
+
+      final ImageProducer ip = new FilteredImageSource(im.getSource(), filter);
+      return Toolkit.getDefaultToolkit().createImage(ip);
+   }
+
+    public void render(Graphics2D g) {
         g.setColor(Color.ORANGE);
         g.fillRect(0, 0, world.Levels.get(world.Level).xs, world.Levels.get(world.Level).ys);
         g.setColor(Color.BLUE);
-        for (Rectangle r : world.Levels.get(world.Level)) {
-            Rectangle tr = (Rectangle) r.clone();
-            tr.grow(2, 2);
-            g.fillRect(tr.x, tr.y, tr.width, tr.height);
-        }
-        g.setColor(Color.BLUE);
-        g.fillRect(0, world.Levels.get(world.Level).ys - 12, world.Levels.get(world.Level).xs, 12);
-    }
-
-    public void render(Graphics2D g) {
-        if (oldLevel != world.Level) {
-            oldLevel = world.Level;
-            setBackdrop();
-        }
-        g.setColor(Color.ORANGE);
-        g.fillRect(0, 0, ScreenX-world.Levels.get(world.Level).xs, ScreenX-world.Levels.get(world.Level).ys);
-        g.setColor(Color.BLUE);
         Rectangle tr = (Rectangle) world.Characters.get(0).clone();
-        tr.grow(2, 2);
-        int x,ix,y,iy;
-        if (tr.x < ScreenX/2) {
-            x=tr.x;
-            ix=0;
-        } else if(tr.x>world.Levels.get(world.Level).xs-(ScreenX/2)){
-            ix=ScreenX-world.Levels.get(world.Level).xs;
-            x=(ScreenX)-(world.Levels.get(world.Level).xs-(tr.x));
-        }else{
-            ix=(ScreenX/2)-tr.x;
-            x=ScreenX/2;
+        if (tr.x < ScreenX / 2) {
+            x = tr.x;
+            ix = 0;
+        } else if (tr.x > world.Levels.get(world.Level).xs - (ScreenX / 2)) {
+            ix = ScreenX - world.Levels.get(world.Level).xs;
+            x = (ScreenX) - (world.Levels.get(world.Level).xs - (tr.x));
+        } else {
+            ix = (ScreenX / 2) - tr.x;
+            x = ScreenX / 2;
         }
-        if (tr.y < ScreenY/2) {
-            y=tr.y;
-            iy=0;
-        } else if(tr.y>world.Levels.get(world.Level).ys-(ScreenY/2)){
-            iy=ScreenY-world.Levels.get(world.Level).ys;
-            y=(ScreenY)-(world.Levels.get(world.Level).ys-(tr.y));
-        }else{
-            iy=(ScreenY/2)-tr.y;
-            y=ScreenY/2;
+        if (tr.y < ScreenY / 2) {
+            y = tr.y;
+            iy = 0;
+        } else if (tr.y > world.Levels.get(world.Level).ys - (ScreenY / 2)) {
+            iy = ScreenY - world.Levels.get(world.Level).ys;
+            y = (ScreenY) - (world.Levels.get(world.Level).ys - (tr.y));
+        } else {
+            iy = (ScreenY / 2) - tr.y;
+            y = ScreenY / 2;
         }
-        g.drawImage(LevelBackdrop, null, ix, iy);
-        g.fillRect(x, y, tr.width, tr.height);
+        if (((GameCharacter) tr).isActive) {
+            //g.fillRect(x, y, tr.width, tr.height);
+            g.drawImage(makeColorTransparent(Character,Color.WHITE), x, y, null);
+        }
+        g.translate(ix, iy);
+        g.fillRect(0, world.Levels.get(world.Level).ys - 12, world.Levels.get(world.Level).xs, 12);
+        for (Rectangle r : world.Levels.get(world.Level)) {
+            Rectangle trh = (Rectangle) r.clone();
+            tr.grow(2, 2);
+            g.fillRect(trh.x, trh.y, trh.width, trh.height);
+        }
+        try {
+            Thread.sleep(1);
+        } catch (InterruptedException ex) {
+            ex.printStackTrace();
+        }
     }
 
     public void start() {
-        oldLevel = world.Level;
-        LevelBackdrop = new BufferedImage(ScreenX*2, ScreenY, BufferedImage.TYPE_INT_RGB);
-        setBackdrop();
+        try {
+            Character = ImageIO.read(getClass().getResource("Sprite.png"));
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
         setBounds(0, 0, ScreenX, ScreenY);
         addMouseListener(this);
         setIgnoreRepaint(true);
         createBufferStrategy(2);
-        Thread GameRenderThread = new Thread() {
-            @Override
-            public void run() {
-                while (!world.stopped) {
-                    gameLoop();
-                }
+        Thread GameRenderThread = new Thread(() -> {
+            while (!world.isStopped()) {
+                gameLoop();
             }
-        };
+        });
         GameRenderThread.setDaemon(true);
         GameRenderThread.start();
     }
