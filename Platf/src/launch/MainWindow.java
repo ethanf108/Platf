@@ -36,11 +36,13 @@ public final class MainWindow extends JFrame implements KeyEventDispatcher {
         setVisible(true);
         GraphicsPanel.start();
         world.start();
+        MainCharacter.start();
         pack();
     }
 
     public MainWindow() {
         super("");
+        staticImages.init();
         KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
         manager.addKeyEventDispatcher(this);
         ScreenX = Toolkit.getDefaultToolkit().getScreenSize().width;
@@ -66,9 +68,8 @@ public final class MainWindow extends JFrame implements KeyEventDispatcher {
         };
         world.Levels.add(LevelOne);
         world.Levels.add(LevelTwo);
-        this.MainCharacter = new GameCharacter(new Rectangle(0, ScreenY-120, 40, 80), world) {
+        this.MainCharacter = new GameCharacter(new Rectangle(0, ScreenY-120, 37, 80), world) {
             {
-                start();
             }
         };
         GraphicsPanel = new DrawClass(ScreenX, ScreenY, world);

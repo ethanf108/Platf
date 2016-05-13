@@ -9,6 +9,7 @@ import java.awt.RenderingHints;
 import java.awt.Toolkit;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
 import java.awt.image.FilteredImageSource;
@@ -19,7 +20,7 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 
 public class DrawClass extends Canvas implements MouseListener {
-    BufferedImage Character = null;
+
     private final int ScreenX, ScreenY;
     private final World world;
 
@@ -45,31 +46,35 @@ public class DrawClass extends Canvas implements MouseListener {
     }
     int x, ix, y, iy;
 
-   public static Image makeColorTransparent(final BufferedImage im, final Color color)
-   {
-      final ImageFilter filter = new RGBImageFilter()
-      {
-         // the color we are looking for (white)... Alpha bits are set to opaque
-         public int markerRGB = color.getRGB() | 0xFFFFFFFF;
-
-         public final int filterRGB(final int x, final int y, final int rgb)
-         {
-            if ((rgb | 0xFF000000) == markerRGB)
-            {
-               // Mark the alpha bits as zero - transparent
-               return 0x00FFFFFF & rgb;
+    public static Image makeColorTransparent(final BufferedImage im, final Color color) {
+        final ImageFilter filter = new RGBImageFilter() {
+            public int markerRGB = color.getRGB() | 0xFFFFFFFF;
+            @Override
+            public final int filterRGB(final int x, final int y, final int rgb) {
+                if ((rgb | 0xFF000000) == markerRGB) {
+                    return 0x00FFFFFF & rgb;
+                } else {
+                    return rgb;
+                }
             }
-            else
-            {
-               // nothing to do
-               return rgb;
-            }
-         }
-      };
+        };
+        final ImageProducer ip = new FilteredImageSource(im.getSource(), filter);
+        return Toolkit.getDefaultToolkit().createImage(ip);
+    }
 
-      final ImageProducer ip = new FilteredImageSource(im.getSource(), filter);
-      return Toolkit.getDefaultToolkit().createImage(ip);
-   }
+    private BufferedImage createFlipped(BufferedImage image) {
+        AffineTransform at = new AffineTransform();
+        at.concatenate(AffineTransform.getScaleInstance(-1, 1));
+        at.concatenate(AffineTransform.getTranslateInstance(-image.getWidth(), 0));
+        BufferedImage newImage = new BufferedImage(
+                image.getWidth(), image.getHeight(),
+                BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = newImage.createGraphics();
+        g.transform(at);
+        g.drawImage(image, 0, 0, null);
+        g.dispose();
+        return newImage;
+    }
 
     public void render(Graphics2D g) {
         g.setColor(Color.ORANGE);
@@ -97,8 +102,9 @@ public class DrawClass extends Canvas implements MouseListener {
             y = ScreenY / 2;
         }
         if (((GameCharacter) tr).isActive) {
-            //g.fillRect(x, y, tr.width, tr.height);
-            g.drawImage(makeColorTransparent(Character,Color.WHITE), x, y, null);
+            g.drawImage(makeColorTransparent(
+                    (world.Characters.get(0).isFacingLeft() ? createFlipped(staticImages.Character) : staticImages.Character),
+                    Color.WHITE), x, y, null);
         }
         g.translate(ix, iy);
         g.fillRect(0, world.Levels.get(world.Level).ys - 12, world.Levels.get(world.Level).xs, 12);
@@ -107,6 +113,8 @@ public class DrawClass extends Canvas implements MouseListener {
             tr.grow(2, 2);
             g.fillRect(trh.x, trh.y, trh.width, trh.height);
         }
+        g.setColor(Color.BLACK);
+        g.drawString(""+world.Characters.get(0).isLeft+" "+world.Characters.get(0).isTop+" "+world.Characters.get(0).isMiddleX+" "+world.Characters.get(0).isMiddleY+" ", 100, 100);
         try {
             Thread.sleep(1);
         } catch (InterruptedException ex) {
@@ -115,11 +123,6 @@ public class DrawClass extends Canvas implements MouseListener {
     }
 
     public void start() {
-        try {
-            Character = ImageIO.read(getClass().getResource("Sprite.png"));
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
         setBounds(0, 0, ScreenX, ScreenY);
         addMouseListener(this);
         setIgnoreRepaint(true);

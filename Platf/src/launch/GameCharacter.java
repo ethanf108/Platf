@@ -18,7 +18,10 @@ public class GameCharacter extends Platform implements KeyEventDispatcher {
     private int ScreenX;
     private int ScreenY;
     private final World world;
-
+    private boolean FacingLeft;
+    public boolean isFacingLeft(){
+        return FacingLeft;
+    }
     public void start() {
         isActive = true;
         GamePhysThread.start();
@@ -81,6 +84,7 @@ public class GameCharacter extends Platform implements KeyEventDispatcher {
             }
         }
         gmx *= 0.97;
+        world.collision(this);
         gx += gmx;
         gy += gmy / 70;
         x = (int) gx;
@@ -109,8 +113,10 @@ public class GameCharacter extends Platform implements KeyEventDispatcher {
             }
             if (e.getKeyCode() == keyR) {
                 RightKeyPressed = true;
+                FacingLeft=false;
             }
             if (e.getKeyCode() == keyL) {
+                FacingLeft=true;
                 LeftKeyPressed = true;
             }
         }
