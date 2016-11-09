@@ -29,13 +29,11 @@ public final class MainWindow extends JFrame implements KeyEventDispatcher {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setUndecorated(true);
         setExtendedState(getExtendedState() | JFrame.MAXIMIZED_BOTH);
-        world.init();
         world.Characters.add(MainCharacter);
         getContentPane().add(GraphicsPanel);
         getContentPane().setLayout(new BoxLayout(getContentPane(), BoxLayout.X_AXIS));
         setVisible(true);
         GraphicsPanel.start();
-        world.start();
         MainCharacter.start();
         pack();
     }
@@ -49,21 +47,22 @@ public final class MainWindow extends JFrame implements KeyEventDispatcher {
         ScreenY = Toolkit.getDefaultToolkit().getScreenSize().height;
         this.world = new World(ScreenX, ScreenY) {
             {
-                init();
-                setSpeed(SlowMode);
+                setSpeed(RegularMode);
             }
         };
         this.LevelTwo = new Level(ScreenX, ScreenY) {
             {
-                add(new Platform(new Rectangle(800, 0, 100, 1000), "w"));
+                add(new GameObject(new Rectangle(800, 0, 100, 1000), "w"));
             }
         };
         this.LevelOne = new Level(ScreenX, ScreenY) {
             {
-                add(new Platform(new Rectangle(200, ys - 150, 100, 20), "w"));
-                add(new Platform(new Rectangle(500, ys - 250, 100, 20), "w"));
-                add(new Platform(new Rectangle(800, ys - 350, 100, 20), "w"));
-                add(new Platform(new Rectangle(1100, ys - 450, 100, 20), "w"));
+                add(new GameObject(new Rectangle(600,ScreenY-30,100,20),"hw"));
+                add(new GameObject(new Rectangle(ScreenX-10,0,10,300), "N"));
+                add(new GameObject(new Rectangle(200, ys - 150, 100, 20), "w"));
+                add(new GameObject(new Rectangle(500, ys - 250, 100, 20), "w"));
+                add(new GameObject(new Rectangle(800, ys - 350, 100, 20), "w"));
+                add(new GameObject(new Rectangle(1100, ys - 450, 100, 20), "w"));
             }
         };
         world.Levels.add(LevelOne);

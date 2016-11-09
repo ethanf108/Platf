@@ -4,21 +4,24 @@ import java.awt.KeyEventDispatcher;
 import java.awt.KeyboardFocusManager;
 import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
+import java.lang.ref.SoftReference;
 
-public class GameCharacter extends Platform implements KeyEventDispatcher {
+public class GameCharacter extends GameObject implements KeyEventDispatcher {
 
     private boolean SpacePressed;
     private boolean RightKeyPressed;
     private boolean LeftKeyPressed;
     double gmx, gmy, gx, gy;
-    boolean canJump, canWallJump;
-    public int keyL=KeyEvent.VK_LEFT,keyS=KeyEvent.VK_UP,keyR=KeyEvent.VK_RIGHT;
+    boolean canJump, canWallJump,onHighJump;
+    public int keyL=KeyEvent.VK_A,keyS=KeyEvent.VK_SPACE,keyR=KeyEvent.VK_D,keyC=KeyEvent.VK_S;
     boolean isActive;
     private final Thread GamePhysThread;
     private int ScreenX;
     private int ScreenY;
-    private final World world;
+    private final SoftReference<World> SoftWorld;
     private boolean FacingLeft;
+    public boolean isCrouching = false;
+    public int CrouchDecrease = 10;
     public boolean isFacingLeft(){
         return FacingLeft;
     }
@@ -35,7 +38,7 @@ public class GameCharacter extends Platform implements KeyEventDispatcher {
         manager.addKeyEventDispatcher(this);
         this.ScreenX=w.Levels.get(w.Level).xs;
         this.ScreenY=w.Levels.get(w.Level).ys;
-        this.world = w;
+        this.SoftWorld = new SoftReference<>(w);
         gy=r.y;
         gx=r.x;
         GamePhysThread = new Thread(() -> {
@@ -46,18 +49,23 @@ public class GameCharacter extends Platform implements KeyEventDispatcher {
         );
         GamePhysThread.setDaemon(true);
     }
+    public double getJumpHeight(){
+        return !onHighJump?(isCrouching?-140:-220.0):(isCrouching?-220:-280.0);
+    }
     public void update() {
+        World world = this.SoftWorld.get();
         ScreenX=world.Levels.get(world.Level).xs;
         ScreenY=world.Levels.get(world.Level).ys;
         if (gy >= ScreenY - (height + 10)) {
             gmy = 0;
             canJump = true;
+            onHighJump=false;
             gy = ScreenY - (height + 10);
         } else if (gy < 0) {
             gmy = 0;
             gy = 0;
         } else {
-            gmy += 2;
+            gmy += isCrouching?5:2;
         }
         if (gx + width > ScreenX) {
             gx = ScreenX - width;
@@ -66,23 +74,24 @@ public class GameCharacter extends Platform implements KeyEventDispatcher {
             gx = 0;
             gmx = 0;
         } else if (RightKeyPressed) {
-            gmx += 0.07;
+            gmx += isCrouching?0.04:0.07;
         } else if (LeftKeyPressed) {
-            gmx -= 0.07;
+            gmx -= isCrouching?0.04:0.07;
         }
         if (SpacePressed && (canJump || canWallJump)) {
             if (canWallJump && !canJump) {
                 if (isLeft && RightKeyPressed) {
-                    gmx = -6;
-                    gmy = -220.0;
+                    gmx = isCrouching?-1:-6;
+                    gmy = getJumpHeight();
                 } else if (!isLeft && LeftKeyPressed) {
-                    gmx = 6;
-                    gmy = -220.0;
+                    gmx = isCrouching?1:6;
+                    gmy = getJumpHeight();
                 }
             } else {
-                gmy = -220.0;
+                gmy = getJumpHeight();
             }
         }
+        if(Math.abs(gmy)>280)gmy=280*(gmy/Math.abs(gmy));
         gmx *= 0.97;
         world.collision(this);
         gx += gmx;
@@ -107,6 +116,14 @@ public class GameCharacter extends Platform implements KeyEventDispatcher {
             if (e.getKeyCode() == keyL) {
                 LeftKeyPressed = false;
             }
+            if(e.getKeyCode() == keyC){
+                if(isCrouching){
+                    this.height+=this.CrouchDecrease;
+                    this.y-=this.CrouchDecrease;
+                    this.gy-=this.CrouchDecrease;
+                }
+                isCrouching=false;
+            }
         } else {
             if (e.getKeyCode() == keyS) {
                 SpacePressed = true;
@@ -118,6 +135,14 @@ public class GameCharacter extends Platform implements KeyEventDispatcher {
             if (e.getKeyCode() == keyL) {
                 FacingLeft=true;
                 LeftKeyPressed = true;
+            }
+            if(e.getKeyCode() == keyC){
+                if(!isCrouching){
+                    this.height-=this.CrouchDecrease;
+                    this.gy+=this.CrouchDecrease;
+                    this.y+=this.CrouchDecrease;
+                }
+                isCrouching=true;
             }
         }
         return false;

@@ -3,7 +3,7 @@ package launch;
 import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.Image;
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Toolkit;
@@ -12,25 +12,34 @@ import java.awt.event.MouseListener;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
-import java.awt.image.FilteredImageSource;
-import java.awt.image.ImageFilter;
-import java.awt.image.ImageProducer;
-import java.awt.image.RGBImageFilter;
-import java.io.IOException;
-import javax.imageio.ImageIO;
+import java.lang.ref.SoftReference;
 
 public class DrawClass extends Canvas implements MouseListener {
 
     private final int ScreenX, ScreenY;
-    private final World world;
+    private final SoftReference<World> sworld;
+    public boolean stopped = true;
+    public int testrate = 0;
+    int oldtest = 0;
+    long lasttime = 0;
 
     public DrawClass(int x, int y, World w) {
         ScreenX = x;
         ScreenY = y;
-        world = w;
+        sworld = new SoftReference<>(w);
+        BufferedImage cursorImg = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+        this.setCursor(Toolkit.getDefaultToolkit().createCustomCursor(
+                cursorImg, new Point(0, 0), "blank cursor"));
     }
 
     public void gameLoop() {
+        if (System.currentTimeMillis() - lasttime > 1000) {
+            lasttime = System.currentTimeMillis();
+            testrate = oldtest;
+            oldtest = 0;
+        } else {
+            oldtest += 1;
+        }
         Graphics2D g = (Graphics2D) getBufferStrategy().getDrawGraphics();
         RenderingHints rh = new RenderingHints(
                 RenderingHints.KEY_TEXT_ANTIALIASING,
@@ -45,22 +54,6 @@ public class DrawClass extends Canvas implements MouseListener {
         Toolkit.getDefaultToolkit().sync();
     }
     int x, ix, y, iy;
-
-    public static Image makeColorTransparent(final BufferedImage im, final Color color) {
-        final ImageFilter filter = new RGBImageFilter() {
-            public int markerRGB = color.getRGB() | 0xFFFFFFFF;
-            @Override
-            public final int filterRGB(final int x, final int y, final int rgb) {
-                if ((rgb | 0xFF000000) == markerRGB) {
-                    return 0x00FFFFFF & rgb;
-                } else {
-                    return rgb;
-                }
-            }
-        };
-        final ImageProducer ip = new FilteredImageSource(im.getSource(), filter);
-        return Toolkit.getDefaultToolkit().createImage(ip);
-    }
 
     private BufferedImage createFlipped(BufferedImage image) {
         AffineTransform at = new AffineTransform();
@@ -77,8 +70,11 @@ public class DrawClass extends Canvas implements MouseListener {
     }
 
     public void render(Graphics2D g) {
+        World world = sworld.get();
         g.setColor(Color.ORANGE);
         g.fillRect(0, 0, world.Levels.get(world.Level).xs, world.Levels.get(world.Level).ys);
+        g.setColor(Color.BLACK);
+        g.drawString("" + testrate, 100, 100);
         g.setColor(Color.BLUE);
         Rectangle tr = (Rectangle) world.Characters.get(0).clone();
         if (tr.x < ScreenX / 2) {
@@ -102,19 +98,19 @@ public class DrawClass extends Canvas implements MouseListener {
             y = ScreenY / 2;
         }
         if (((GameCharacter) tr).isActive) {
-            g.drawImage(makeColorTransparent(
-                    (world.Characters.get(0).isFacingLeft() ? createFlipped(staticImages.Character) : staticImages.Character),
-                    Color.WHITE), x, y, null);
+            BufferedImage tb = ((world.Characters.get(0).isFacingLeft() ? createFlipped(staticImages.Character) : staticImages.Character));
+            g.drawImage(tb.getSubimage(0, 0,
+                    tb.getWidth(), tb.getHeight() - (((GameCharacter) tr).isCrouching ? ((GameCharacter) tr).CrouchDecrease : 0)), x, y, null);
         }
         g.translate(ix, iy);
         g.fillRect(0, world.Levels.get(world.Level).ys - 12, world.Levels.get(world.Level).xs, 12);
         for (Rectangle r : world.Levels.get(world.Level)) {
+            g.setColor(((GameObject) r).isEndLevel ? Color.RED : Color.BLUE);
             Rectangle trh = (Rectangle) r.clone();
             tr.grow(2, 2);
             g.fillRect(trh.x, trh.y, trh.width, trh.height);
         }
         g.setColor(Color.BLACK);
-        g.drawString(""+world.Characters.get(0).isLeft+" "+world.Characters.get(0).isTop+" "+world.Characters.get(0).isMiddleX+" "+world.Characters.get(0).isMiddleY+" ", 100, 100);
         try {
             Thread.sleep(1);
         } catch (InterruptedException ex) {
@@ -128,7 +124,8 @@ public class DrawClass extends Canvas implements MouseListener {
         setIgnoreRepaint(true);
         createBufferStrategy(2);
         Thread GameRenderThread = new Thread(() -> {
-            while (!world.isStopped()) {
+            lasttime = System.currentTimeMillis();
+            while (stopped) {
                 gameLoop();
             }
         });
@@ -138,7 +135,7 @@ public class DrawClass extends Canvas implements MouseListener {
 
     @Override
     public void mouseClicked(MouseEvent e) {
-        world.stop();
+
         System.exit(0);
     }
 

@@ -2,74 +2,73 @@ package launch;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.Rectangle;
+import java.awt.Toolkit;
 import java.awt.geom.Area;
 import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
+import java.awt.image.FilteredImageSource;
+import java.awt.image.ImageFilter;
+import java.awt.image.ImageProducer;
+import java.awt.image.PixelGrabber;
+import java.awt.image.RGBImageFilter;
 import java.io.IOException;
 import javax.imageio.ImageIO;
 
 public class staticImages {
-    public static void init(){
+
+    public static BufferedImage makeColorTransparent(final BufferedImage im, final Color color) {
+        final ImageFilter filter = new RGBImageFilter() {
+            public int markerRGB = color.getRGB() | 0xFFFFFFFF;
+
+            @Override
+            public final int filterRGB(final int x, final int y, final int rgb) {
+                if ((rgb | 0xFF000000) == markerRGB) {
+                    return 0x00FFFFFF & rgb;
+                } else {
+                    return rgb;
+                }
+            }
+        };
+        final ImageProducer ip = new FilteredImageSource(im.getSource(), filter);
+        Image image = Toolkit.getDefaultToolkit().createImage(ip);
+        BufferedImage newImage = new BufferedImage(
+                image.getWidth(null), image.getHeight(null),
+                BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = newImage.createGraphics();
+        g.drawImage(image, 0, 0, null);
+        return newImage;
+    }
+
+    public static void init() {
         try {
-            Character = ImageIO.read(staticImages.class.getResource("Sprite.png"));
+            Character = makeColorTransparent(ImageIO.read(staticImages.class.getResource("Sprite.png")), Color.WHITE);
         } catch (IOException ex) {
             ex.printStackTrace();
         }
-        fly = new BufferedImage(100,20,BufferedImage.TYPE_INT_RGB);
-        Graphics2D g = (Graphics2D) fly.getGraphics();
-        g.setColor(Color.BLUE);
-        g.fillRect(0, 0, 100, 20);
     }
     public static BufferedImage Character = null;
-    public static BufferedImage fly = null;
-    public static Rectangle collision;
-    public static boolean detectCollision(Rectangle spiderBounds, Rectangle flyBounds) {
-            collision = null;
-            // Check if the boundires intersect
-            if (spiderBounds.intersects(flyBounds)) {
-                // Calculate the collision overlay
-                Rectangle bounds = getCollision(spiderBounds, flyBounds);
-                if (!bounds.isEmpty()) {
-                    // Check all the pixels in the collision overlay to determine
-                    // if there are any non-alpha pixel collisions...
-                    for (int x = bounds.x; x < bounds.x + bounds.width; x++) {
-                        for (int y = bounds.y; y < bounds.y + bounds.height; y++) {
-                            if (collision(x, y,spiderBounds,flyBounds)) {
-                                collision = bounds;
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }
-            return false;
-        }
 
-        public static Rectangle getCollision(Rectangle rect1, Rectangle rect2) {
-            Area a1 = new Area(rect1);
-            Area a2 = new Area(rect2);
-            a1.intersect(a2);
-            return a1.getBounds();
+    public static boolean detectCollision(Rectangle R1, Rectangle R2) {
+        Rectangle RET = R1.intersection(R2);
+        PixelGrabber pix = new PixelGrabber(Character,RET.x,RET.y,RET.height,RET.width,true);
+        try {
+            pix.grabPixels();
+        ColorModel cm = pix.getColorModel();
+        return cm.hasAlpha();
+        } catch (InterruptedException ex) {
+            ex.printStackTrace();
         }
+        return false;
+    }
 
-        /**
-         * Test if a given x/y position of the images contains transparent
-         * pixels or not...
-         * @param x
-         * @param y
-         * @return 
-         */
-        public static boolean collision(int x, int y,Rectangle spiderBounds, Rectangle flyBounds) {
-            boolean collision = false;
-            int spiderPixel = Character.getRGB(x - spiderBounds.x, y - spiderBounds.y);
-            int flyPixel = fly.getRGB(x - flyBounds.x, y - flyBounds.y);
-            // 255 is completely transparent, you might consider using something
-            // a little less absolute, like 225, to give you a sligtly
-            // higher hit right, for example...
-            if (((spiderPixel >> 24) & 0xFF) < 255 && ((flyPixel >> 24) & 0xFF) < 255) {
-                collision = true;
-            }
-            return collision;
-        }
-    
+    public static Rectangle getCollision(Rectangle rect1, Rectangle rect2) {
+        Area a1 = new Area(rect1);
+        Area a2 = new Area(rect2);
+        a1.intersect(a2);
+        return a1.getBounds();
+    }
+
+
 }

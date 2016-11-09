@@ -18,7 +18,9 @@ public class World {
     public final char FastMode = 3;
     public final char SlowMode = 7;
     public final char RegularMode = 5;
+    /*
     private Thread CollisionThread;
+//DEPRECATED
 
     void collisionCheck() {
         for (GameCharacter gc : Characters) {
@@ -27,11 +29,10 @@ public class World {
         }
         for (Platform tmprect : Levels.get(Level)) {
             Rectangle g = ((Rectangle) tmprect.clone());
-           // g.grow(-29,-92);
+            // g.grow(-29,-92);
             for (GameCharacter gc : Characters) {
-                //if (gc.intersects(tmprect)) {    
-                
-                if(staticImages.detectCollision(gc, g)){
+                //if (gc.intersects(tmprect)) {  
+                if (staticImages.detectCollision(gc, g)) {
                     if (g.x + RectScale > gc.gx + gc.width) {
                         gc.isLeft = true;
                         gc.isMiddleX = false;
@@ -57,14 +58,15 @@ public class World {
                         } else {
                             gc.gmy = 0;
                             gc.gy += 5;
-                        }/*
-                        if (gc.isLeft) {
-                            gc.gmx = 0;
-                            gc.gx -= 1;
-                        } else {
-                            gc.gmx = 0;
-                            gc.gx += 1;
-                        }*/
+                        }//MLC
+                         if (gc.isLeft) {
+                         gc.gmx = 0;
+                         gc.gx -= 1;
+                         } else {
+                         gc.gmx = 0;
+                         gc.gx += 1;
+                         }//END MLC
+
                     } else if (gc.isMiddleY) {
                         if (gc.isLeft) {
                             if (gc.gmx > 0) {
@@ -99,15 +101,27 @@ public class World {
             System.err.println("ERROR");
         }
     }
-
+*/
     void collision(GameCharacter gc) {
-            gc.canJump = false;
-            gc.canWallJump = false;
-        for (Platform g : Levels.get(Level)) {
+        gc.canJump = false;
+        gc.canWallJump = false;
+        for (GameObject g : Levels.get(Level)) {
             Rectangle tmprect = ((Rectangle) g.clone());
             tmprect.grow(RectScale, RectScale);
-                          if(staticImages.detectCollision(gc, g)){
-//  if (gc.intersects(tmprect)) {
+            if (g.isEndLevel) {
+                if (gc.intersects(tmprect)) {
+                    this.Level += 1;
+                    gc.x = 0;
+                    gc.y = ScreenY - 120;
+                    gc.gx = 0;
+                    gc.gy = ScreenY - 120;
+                    gc.gmx = 0;
+                    gc.gmy = 0;
+                }
+                continue;
+            }
+            //   if(staticImages.detectCollision(gc, g)){  
+            if (gc.intersects(tmprect)) {
                 if (g.x + RectScale > gc.gx + gc.width) {
                     gc.isLeft = true;
                     gc.isMiddleX = false;
@@ -129,8 +143,10 @@ public class World {
                 if (gc.isMiddleX && gc.isMiddleY) {
                     if (gc.isTop) {
                         gc.gmy = 0;
+                        gc.gy = g.getMinY() - g.height;
                     } else {
                         gc.gmy = 0;
+                        gc.gy = g.getMaxY();
                     }
                 } else if (gc.isMiddleY) {
                     if (gc.isLeft) {
@@ -144,42 +160,25 @@ public class World {
                     if (gc.isTop) {
                         if (gc.gmy > 0) {
                             gc.gmy = 0;
+                            gc.gy = g.getMinY() - gc.height;
                         }
                     } else if (gc.gmy < 0) {
                         gc.gmy = 0;
+                        gc.gy = g.getMaxY();
                     }
                 }
+                gc.onHighJump=false;
                 if (gc.isTop && gc.isMiddleX) {
+                    gc.onHighJump=g.isHighJump;
                     gc.canJump = true;
                 }
-                if (g.Props.contains("w") && gc.isMiddleY) {
+                if (g.isAbleWallJump && gc.isMiddleY) {
                     gc.canWallJump = !gc.isMiddleX;
+                    gc.onHighJump=g.isHighJump;
                 }
             }
         }
 
-    }
-
-    public void init() {
-        CollisionThread = new Thread(() -> {
-            while (!stopped) {
-                //collisionCheck();
-            }
-        }
-        );
-        CollisionThread.setDaemon(true);
-    }
-
-    public void start() {
-        CollisionThread.start();
-        stopped = false;
-    }
-
-    public void stop() {
-        for (GameCharacter g : Characters) {
-            g.stop();
-        }
-        stopped = true;
     }
 
     public void setSpeed(char mode) {
@@ -188,10 +187,6 @@ public class World {
 
     public char getSpeed() {
         return CollisionDelay;
-    }
-
-    public boolean isStopped() {
-        return stopped;
     }
 
     public World(int sx, int sy) {
